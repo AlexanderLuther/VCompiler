@@ -40,7 +40,7 @@ public class VCompilerFrame extends javax.swing.JFrame {
         vTabs = new VTab[4];
         
         filePanel = new FilePanel(this, filesDriver, vTabsCreator, vTabs, vTabsArea, positionLabel, informationLabel);
-        generatePanel = new GeneratePanel(this);
+        generatePanel = new GeneratePanel(this, vTabs, informationLabel, messagesArea);
         executePanel = new ExecutePanel(this);
         reportPanel = new ReportPanel(this);
         helpPanel = new HelpPanel(this, filesDriver);
@@ -84,6 +84,10 @@ public class VCompilerFrame extends javax.swing.JFrame {
             PanelChanger.changePanel(actionsPanel, optionPanels[selectedMenu.ordinal()]);
         }
     }
+    
+    public void printMessage(String message){
+        messagesArea.setText(messagesArea.getText() + message);
+    }
 
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
@@ -110,7 +114,7 @@ public class VCompilerFrame extends javax.swing.JFrame {
         informationLabel = new javax.swing.JLabel();
         jPanel7 = new javax.swing.JPanel();
         jScrollPane1 = new javax.swing.JScrollPane();
-        jTextPane1 = new javax.swing.JTextPane();
+        messagesArea = new javax.swing.JTextPane();
         textEditorPanel = new javax.swing.JPanel();
         jPanel1 = new javax.swing.JPanel();
         jPanel2 = new javax.swing.JPanel();
@@ -338,12 +342,12 @@ public class VCompilerFrame extends javax.swing.JFrame {
 
         messagesPanel.add(jPanel7, java.awt.BorderLayout.PAGE_START);
 
-        jTextPane1.setEditable(false);
-        jTextPane1.setBackground(new java.awt.Color(43, 43, 43));
-        jTextPane1.setBorder(new javax.swing.border.LineBorder(new java.awt.Color(12, 173, 183), 1, true));
-        jTextPane1.setToolTipText("Area de Mensajes");
-        jTextPane1.setPreferredSize(new java.awt.Dimension(62, 20));
-        jScrollPane1.setViewportView(jTextPane1);
+        messagesArea.setEditable(false);
+        messagesArea.setBackground(new java.awt.Color(43, 43, 43));
+        messagesArea.setBorder(new javax.swing.border.LineBorder(new java.awt.Color(12, 173, 183), 1, true));
+        messagesArea.setToolTipText("Area de Mensajes");
+        messagesArea.setPreferredSize(new java.awt.Dimension(62, 20));
+        jScrollPane1.setViewportView(messagesArea);
 
         messagesPanel.add(jScrollPane1, java.awt.BorderLayout.CENTER);
 
@@ -489,10 +493,10 @@ public class VCompilerFrame extends javax.swing.JFrame {
     private javax.swing.JPanel jPanel8;
     private javax.swing.JPanel jPanel9;
     private javax.swing.JScrollPane jScrollPane1;
-    private javax.swing.JTextPane jTextPane1;
     private javax.swing.JPanel mainPanel;
     private javax.swing.JPanel menuPanel;
     private javax.swing.JPanel menusPanel;
+    private javax.swing.JTextPane messagesArea;
     private javax.swing.JPanel messagesPanel;
     private javax.swing.JLabel positionLabel;
     private rojeru_san.RSButton reportButton;

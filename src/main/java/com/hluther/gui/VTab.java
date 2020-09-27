@@ -2,10 +2,8 @@ package com.hluther.gui;
 
 import java.awt.Color;
 import java.awt.Font;
-import javax.swing.BorderFactory;
 import javax.swing.JLabel;
 import javax.swing.JTextArea;
-import javax.swing.border.Border;
 import javax.swing.event.CaretEvent;
 import javax.swing.event.CaretListener;
 import javax.swing.text.BadLocationException;
@@ -83,6 +81,10 @@ public class VTab extends JTextArea implements CaretListener{
         this.path = path;
     }
 
+    public void setSavedData(){
+        savedData = this.getData();
+    }
+    
     public String getSavedData() {
         return savedData;
     }

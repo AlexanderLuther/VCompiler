@@ -51,7 +51,10 @@ public class FilePanel extends javax.swing.JPanel {
             saveAs(vTab);
         }
         else{
-            if(filesDriver.writeFile(vTab.getPath(), vTab.getData())) informationLabel.setText("Guardado en: " + vTab.getPath());
+            if(filesDriver.writeFile(vTab.getPath(), vTab.getData())){
+                informationLabel.setText("Guardado en: " + vTab.getPath());
+                vTab.setSavedData();
+            }     
             else informationLabel.setText("Error al guardar el archivo.");
         }
         ThreadsDriver.clearLabel(informationLabel);
@@ -64,7 +67,10 @@ public class FilePanel extends javax.swing.JPanel {
     */
     private void saveAs(VTab vTab){
         try {
-            if(fileChoosersDriver.saveFile(vCompilerFrame, vTab)) informationLabel.setText("Guardado en: " + vTab.getPath());
+            if(fileChoosersDriver.saveFile(vCompilerFrame, vTab)){
+                informationLabel.setText("Guardado en: " + vTab.getPath());
+                vTab.setSavedData();
+            } 
             else informationLabel.setText("Guardado cancelado.");
         } catch (IOException ex) {
             informationLabel.setText("Error al guardar: " + ex.getMessage());

@@ -1,4 +1,9 @@
 package com.hluther.gui;
+
+import com.hluther.controlClasses.AnalysisDriver;
+import com.hluther.controlClasses.ThreadsDriver;
+import javax.swing.JLabel;
+import javax.swing.JTextPane;
 /**
  *
  * @author helmuth
@@ -6,9 +11,17 @@ package com.hluther.gui;
 public class GeneratePanel extends javax.swing.JPanel {
 
     private VCompilerFrame vCompilerFrame;
+    private AnalysisDriver analysisDriver;
+    private JLabel informationLabel;
+    private JTextPane messagesArea;
+    private VTab[] vTabs;
         
-    public GeneratePanel(VCompilerFrame vCompilerFrame){
+    public GeneratePanel(VCompilerFrame vCompilerFrame, VTab[] vTabs, JLabel informationLabel, JTextPane messagesArea){
         this.vCompilerFrame = vCompilerFrame;
+        this.informationLabel = informationLabel;
+        this.messagesArea = messagesArea;
+        this.vTabs = vTabs;
+        analysisDriver = new AnalysisDriver();
         initComponents();
     }
 
@@ -55,6 +68,11 @@ public class GeneratePanel extends javax.swing.JPanel {
         codeButton.setMinimumSize(new java.awt.Dimension(100, 20));
         codeButton.setPreferredSize(new java.awt.Dimension(100, 20));
         codeButton.setVerticalTextPosition(javax.swing.SwingConstants.BOTTOM);
+        codeButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                codeButtonActionPerformed(evt);
+            }
+        });
         add(codeButton, java.awt.BorderLayout.WEST);
 
         assemblerButton.setBackground(new java.awt.Color(67, 70, 75));
@@ -71,6 +89,17 @@ public class GeneratePanel extends javax.swing.JPanel {
         assemblerButton.setVerticalTextPosition(javax.swing.SwingConstants.BOTTOM);
         add(assemblerButton, java.awt.BorderLayout.EAST);
     }// </editor-fold>//GEN-END:initComponents
+
+    private void codeButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_codeButtonActionPerformed
+        if(vTabs[0] != null){
+            messagesArea.setText("");
+            analysisDriver.doAnalysis(vTabs[0].getData(), vCompilerFrame);
+        }
+        else{
+            informationLabel.setText("No hay ningun codigo para analizar.");
+            ThreadsDriver.clearLabel(informationLabel);
+        }
+    }//GEN-LAST:event_codeButtonActionPerformed
 
 
     // Variables declaration - do not modify//GEN-BEGIN:variables

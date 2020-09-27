@@ -1,0 +1,294 @@
+package com.hluther.compiler.parser;
+import java_cup.runtime.*;
+import com.hluther.gui.VCompilerFrame;
+import com.hluther.compiler.lexer.VLexer;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import java.util.LinkedList;
+import com.hluther.compiler.AST.AccessModifier;
+import com.hluther.compiler.AST.Assignment;
+import com.hluther.compiler.AST.DoWhile;
+import com.hluther.compiler.AST.For;
+import com.hluther.compiler.AST.Function;
+import com.hluther.compiler.AST.If;
+import com.hluther.compiler.AST.Instruction;
+import com.hluther.compiler.AST.Operation;
+import com.hluther.compiler.AST.Operation.OperationType;
+import com.hluther.compiler.AST.Print;
+import com.hluther.compiler.AST.Print.PrintType;
+import com.hluther.compiler.AST.Procedure;
+import com.hluther.compiler.AST.Statement;
+import com.hluther.compiler.AST.StatementAssignment;
+import com.hluther.compiler.AST.SymbolTable;
+import com.hluther.compiler.AST.Type;
+import com.hluther.compiler.AST.While;
+
+parser code {:
+
+    private VCompilerFrame vCompilerFrame;
+    private SymbolTable symbolTable;
+    private LinkedList<Instruction> AST;
+
+    public VParser(VLexer vLexer, VCompilerFrame vCompilerFrame) { 
+        super(vLexer);
+        this.vCompilerFrame = vCompilerFrame;
+        this.symbolTable = new SymbolTable();
+        this.AST = new LinkedList<>();
+    }
+
+    /**
+     * Metodo que crea nuevas instancias de la clase Statement y las guarda en una lista enlazada.
+     * @param varList Lista de id's para el atributo id de la instancia que se creara.
+     * @param dataType Tipo de dato de todas las instancias que se crearan.
+     * @return LinkedList con todas las instancias creadas.
+     */
+    private LinkedList<Instruction> getStatements(LinkedList<String> varList, Type dataType){
+        LinkedList<Instruction> declarations = new LinkedList<>();
+        for(String varName : varList){
+            declarations.add(new Statement(varName, dataType));
+        }
+        return declarations;
+    }
+
+
+    public void syntax_error(Symbol s){
+        vCompilerFrame.printMessage("Error Sintactico: No se esperaba [" +s.value+ "]. Linea " +s.left+ " Columna " +s.right+"\n");
+    }
+
+    public void unrecovered_syntax_error(Symbol s){
+       
+    } 
+:}
+
+/* Terminals */
+terminal            VB_SEPARATOR, J_SEPARATOR, P_SEPARATOR, C_SEPARATOR, DIM, AS, INTEGER, DOUBLE, CHAR, COMMA, PLUS, MINUS, MULTIPLICATION, DIVISION, MOD, PARENTHESISO, PARENTHESISC,
+                    SQUAREBRACKETO, SQUAREBRACKETC, EQUALS, LESSEQUALTHAN, GREATEREQUALTHAN, LESSTHAN, GREATERTHAN, NOTEQUAL, AND, NOT, OR, IF, THEN, ELSE, ELSEIF, PUBLIC, FUNCTION, END,
+                    RETURN, SUB, BYVAL, SELECT, CASE, WHILE, DO, LOOP, FOR, NEXT, TO, STEP, INTINPUT, FLOATINPUT, CHARINPUT, FULLSTOP, CONSOLE, WRITE, WRITELINE, CONCAT;                 
+terminal String     ID, LITERAL;
+terminal Integer    INTEGERNUM;
+terminal char       CHARACTER;
+terminal Double     DOUBLENUM;
+
+/* Non-terminals */
+non terminal                            s, vb_switch, vb_switch_cases, vb_data_request;
+non terminal Type                       vb_data_type, vb_for_data_type;
+non terminal Instruction                vb_function, vb_procedure, vb_assignment, vb_statement_assignment, vb_while, vb_do_while, vb_for, vb_if, vb_screen_messages;
+non terminal Operation                  vb_arithmetic_op, vb_term, vb_factor, vb_op_value, vb_relational_op, vb_logical_op, vb_logical_term, vb_logical_factor, vb_switch_data, vb_message;
+non terminal AccessModifier             vb_access_modifier;
+non terminal LinkedList<Instruction>    vb_code, vb_code_statements, vb_statement, vb_multiple_type_statement, vb_else_if;
+non terminal LinkedList<Type>           vb_params;
+non terminal LinkedList<String>         vb_var_list;
+
+precedence left NOT;
+precedence left AND;
+precedence left OR;
+precedence left MULTIPLICATION, DIVISION;
+precedence left MOD;
+precedence left PLUS, MINUS;
+
+/* The grammar */
+start with s;
+
+s::=    VB_SEPARATOR vb_code:code 
+        {:      
+            for(var instruction : code){
+                instruction.analyze(symbolTable);
+            }
+        :}
+        ;
+
+
+
+
+
+
+/*------------------------------------------------    VISUAL BASIC SECTION  ------------------------------------------------*/
+vb_code::=  vb_function:instruction vb_code:instructionsList    {: instructionsList.addFirst(instruction); RESULT = instructionsList; :}
+            | vb_procedure:instruction vb_code:instructionsList {: instructionsList.addFirst(instruction); RESULT = instructionsList; :}
+            |                                                   {: RESULT = new LinkedList<Instruction>(); :}
+            ;
+
+vb_code_statements::=   vb_statement:instructions vb_code_statements:instructionsList                {: instructionsList.addAll(0, instructions); RESULT = instructionsList; :}
+                        | vb_statement_assignment:instruction vb_code_statements:instructionsList    {: instructionsList.addFirst(instruction); RESULT = instructionsList; :}
+                        | vb_assignment:instruction vb_code_statements:instructionsList              {: instructionsList.addFirst(instruction); RESULT = instructionsList; :}
+                        | vb_while:instruction vb_code_statements:instructionsList                   {: instructionsList.addFirst(instruction); RESULT = instructionsList; :}
+                        | vb_do_while:instruction vb_code_statements:instructionsList                {: instructionsList.addFirst(instruction); RESULT = instructionsList; :}
+                        | vb_for:instruction vb_code_statements:instructionsList                     {: instructionsList.addFirst(instruction); RESULT = instructionsList; :}
+                        | vb_if:instruction vb_code_statements:instructionsList                      {: instructionsList.addFirst(instruction); RESULT = instructionsList; :}
+                        | vb_switch vb_code_statements
+                        | vb_data_request vb_code_statements
+                        | vb_screen_messages:instruction vb_code_statements:instructionsList         {: instructionsList.addFirst(instruction); RESULT = instructionsList; :}
+                        | RETURN CHARACTER vb_code_statements
+                        | RETURN vb_arithmetic_op vb_code_statements
+                        |                                                                            {: RESULT = new LinkedList<Instruction>(); :}
+                        ;
+                    
+//---------------   Functions && Procedures   ---------------//
+vb_function::=  vb_access_modifier:accessModifier FUNCTION ID:name PARENTHESISO BYVAL vb_params:params PARENTHESISC AS vb_data_type:returnType vb_code_statements:instructionsList END FUNCTION {: RESULT = new Function(accessModifier, returnType, name, params, instructionsList); :}
+                | vb_access_modifier:accessModifier FUNCTION ID:name PARENTHESISO PARENTHESISC AS vb_data_type:returnType vb_code_statements:instructionsList END FUNCTION                      {: RESULT = new Function(accessModifier, returnType, name, null, instructionsList); :}
+                ;
+
+vb_procedure::= vb_access_modifier:accessModifier SUB ID:name PARENTHESISO BYVAL vb_params:params PARENTHESISC vb_code_statements:instructionsList END SUB  {: RESULT = new Procedure(accessModifier, name, params, instructionsList); :} 
+                | vb_access_modifier:accessModifier SUB ID:name PARENTHESISO PARENTHESISC vb_code_statements:instructionsList END SUB                       {: RESULT = new Procedure(accessModifier, name, null, instructionsList); :}
+                ;
+
+vb_access_modifier::=   PUBLIC  {: RESULT = AccessModifier.PUBLIC; :}
+                        |       {: RESULT = AccessModifier.DEFAULT; :}
+                        ;
+
+vb_params::=    ID AS vb_data_type:dataType COMMA vb_params:paramsList  {: paramsList.addFirst(dataType); RESULT = paramsList; :}
+                | ID AS vb_data_type:dataType                           {: RESULT = new LinkedList<Type>(); RESULT.add(dataType); :}
+                ;
+
+//---------------   Statements  ---------------//
+vb_statement::=     DIM ID:varName COMMA vb_var_list:varList AS vb_data_type:dataType COMMA vb_multiple_type_statement:statementsList {: varList.addFirst(varName); statementsList.addAll(0, getStatements(varList, dataType)); RESULT = statementsList; :}
+                    | DIM ID:varName AS vb_data_type:dataType COMMA vb_multiple_type_statement:statementsList                         {: statementsList.add(new Statement(varName, dataType)); RESULT = statementsList; :}
+                    | DIM ID:varName COMMA vb_var_list:varList AS vb_data_type:dataType                                               {: varList.addFirst(varName); RESULT = getStatements(varList, dataType); :}
+                    | DIM ID:varName AS vb_data_type:dataType                                                                         {: RESULT = new LinkedList<Instruction>(); RESULT.add(new Statement(varName, dataType)); :}
+                    ;
+
+vb_var_list::=  ID:varName COMMA vb_var_list:varList    {: varList.addFirst(varName); RESULT = varList; :}
+                | ID:varName                            {: RESULT = new LinkedList<String>(); RESULT.add(varName); :}
+                ;  
+
+vb_multiple_type_statement::=   ID:varName COMMA vb_var_list:varList AS vb_data_type:dataType COMMA vb_multiple_type_statement:statementsList {: varList.addFirst(varName); statementsList.addAll(0, getStatements(varList, dataType)); RESULT = statementsList; :}
+                                | ID:varName AS vb_data_type:dataType COMMA vb_multiple_type_statement:statementsList                         {: statementsList.add(new Statement(varName, dataType)); RESULT = statementsList; :}
+                                | ID:varName COMMA vb_var_list:varList AS vb_data_type:dataType                                               {: varList.addFirst(varName); RESULT = getStatements(varList, dataType); :}
+                                | ID:varName AS vb_data_type:dataType                                                                         {: RESULT = new LinkedList<Instruction>(); RESULT.add(new Statement(varName, dataType)); :}
+                                ;
+
+//---------------   Assignments  ---------------//
+vb_assignment::=    ID:varName EQUALS CHARACTER:value               {: RESULT = new Assignment(varName, new Operation(value)); :}
+                    | ID:varName EQUALS vb_arithmetic_op:value      {: RESULT = new Assignment(varName, value); :}
+                    | ID:varName EQUALS vb_data_request:value
+                    ;
+
+//---------------   Statements && Assignments   ---------------//
+vb_statement_assignment::=  DIM ID:varName AS vb_data_type:dataType EQUALS CHARACTER:value              {: RESULT = new StatementAssignment(varName, new Operation(value), dataType); :}          
+                            | DIM ID:varName AS vb_data_type:dataType EQUALS vb_arithmetic_op:value     {: RESULT = new StatementAssignment(varName, value, dataType); :}
+                            | DIM ID:varName AS vb_data_type:dataType EQUALS vb_data_request:value  
+                            ;
+
+vb_data_type::=     INTEGER     {: RESULT = Type.INTEGER; :}
+                    | DOUBLE    {: RESULT = Type.DOUBLE; :}
+                    | CHAR      {: RESULT = Type.CHAR; :}
+                    ;
+
+//---------------   Arithmetic Expressions   ---------------//     
+vb_arithmetic_op::=     vb_arithmetic_op:value1 PLUS vb_term:value2     {: RESULT = new Operation(value1, value2, OperationType.SUM); :}
+                        | vb_arithmetic_op:value1 MINUS vb_term:value2  {: RESULT = new Operation(value1, value2, OperationType.SUBTRACTION); :}
+                        | vb_term:value                                 {: RESULT = value; :}
+                        ;    
+
+vb_term::=      vb_term:value1 MULTIPLICATION vb_factor:value2  {: RESULT = new Operation(value1, value2, OperationType.MULTIPLICATION); :}
+                | vb_term:value1 DIVISION vb_factor:value2      {: RESULT = new Operation(value1, value2, OperationType.DIVISION); :}
+                | vb_term:value1 MOD vb_factor:value2           {: RESULT = new Operation(value1, value2, OperationType.MOD); :}
+                | vb_factor:value                               {: RESULT = value; :}
+                ;
+
+vb_factor::=    PLUS vb_op_value:value      {: RESULT = new Operation(value, OperationType.PLUS); :}
+                | MINUS vb_op_value:value   {: RESULT = new Operation(value, OperationType.MINUS); :}
+                | vb_op_value:value         {: RESULT = value; :}
+                ;
+
+vb_op_value::=  PARENTHESISO vb_arithmetic_op:value PARENTHESISC    {: RESULT = value; :}
+                | INTEGERNUM:value                                  {: RESULT = new Operation(value); :}   
+                | DOUBLENUM:value                                   {: RESULT = new Operation(value); :}
+                | ID:varName                                        {: RESULT = new Operation(varName); :}
+                ;
+
+//---------------   Relational Expressions   ---------------//     
+vb_relational_op::=     vb_arithmetic_op:value1 EQUALS vb_arithmetic_op:value2              {: RESULT = new Operation(value1, value2, OperationType.EQUALS); :}
+                        | vb_arithmetic_op:value1 LESSEQUALTHAN vb_arithmetic_op:value2     {: RESULT = new Operation(value1, value2, OperationType.LESS_EQUAL_THAN); :}
+                        | vb_arithmetic_op:value1 GREATEREQUALTHAN vb_arithmetic_op:value2  {: RESULT = new Operation(value1, value2, OperationType.GREATER_EQUAL_THAN); :}
+                        | vb_arithmetic_op:value1 LESSTHAN vb_arithmetic_op:value2          {: RESULT = new Operation(value1, value2, OperationType.LESS_THAN); :}
+                        | vb_arithmetic_op:value1 GREATERTHAN vb_arithmetic_op:value2       {: RESULT = new Operation(value1, value2, OperationType.GREATER_THAN); :}
+                        | vb_arithmetic_op:value1 NOTEQUAL vb_arithmetic_op:value2          {: RESULT = new Operation(value1, value2, OperationType.NOTEQUAL); :}
+                        ;
+
+//---------------   Logical Expressions   ---------------// 
+vb_logical_op::=    vb_logical_op:value1 AND vb_logical_term:value2     {: RESULT = new Operation(value1, value2, OperationType.AND); :}
+                    | vb_logical_op:value1 OR vb_logical_term:value2    {: RESULT = new Operation(value1, value2, OperationType.OR); :}
+                    | vb_logical_term:value                             {: RESULT = value; :}
+                    ;
+
+vb_logical_term::=  NOT vb_logical_factor:value     {: RESULT = new Operation(value, OperationType.NOT); :}             
+                    | vb_logical_factor:value       {: RESULT = value; :}
+                    ;
+
+vb_logical_factor::=    PARENTHESISO vb_logical_op:value PARENTHESISC   {: RESULT = value; :}
+                        | vb_relational_op:value                        {: RESULT = value; :}
+                        ;
+
+//---------------   While Structure   ---------------//
+vb_while::=     WHILE vb_logical_op:condition vb_code_statements:instructions END WHILE  {: RESULT = new While(condition, instructions); :}
+                ;
+
+//---------------   Do-While Structure   ---------------//
+vb_do_while::=  DO vb_code_statements:instructions LOOP WHILE vb_logical_op:condition   {: RESULT = new DoWhile(condition, instructions); :}
+                ;
+
+//---------------   For Structure   ---------------//
+vb_for::=   FOR ID:varName AS vb_for_data_type:dataType EQUALS vb_arithmetic_op:counterValue TO vb_arithmetic_op:limitValue STEP vb_arithmetic_op:stepValue vb_code_statements:instructions NEXT    {: RESULT = new For(new StatementAssignment(varName, counterValue, dataType), limitValue, stepValue, instructions); :} 
+            | FOR ID:varName EQUALS vb_arithmetic_op:counterValue TO vb_arithmetic_op:limitValue STEP vb_arithmetic_op:stepValue vb_code_statements:instructions NEXT                               {: RESULT = new For(new Assignment(varName, counterValue), limitValue, stepValue, instructions); :}                     
+            | FOR ID:varName AS vb_for_data_type:dataType EQUALS vb_arithmetic_op:counterValue TO vb_arithmetic_op:limitValue vb_code_statements:instructions NEXT                                  {: RESULT = new For(new StatementAssignment(varName, counterValue, dataType), limitValue, new Operation(1), instructions); :}
+            | FOR ID:varName EQUALS vb_arithmetic_op:counterValue TO vb_arithmetic_op:limitValue vb_code_statements:instructions NEXT                                                               {: RESULT = new For(new Assignment(varName, counterValue), limitValue, new Operation(1), instructions); :}
+            ;
+
+vb_for_data_type::=     INTEGER     {: RESULT = Type.INTEGER; :}
+                        | DOUBLE    {: RESULT = Type.DOUBLE; :}
+                        ;
+
+//---------------   If Structure   ---------------//
+vb_if::=    IF vb_logical_op:condition THEN vb_code_statements:instructions END IF                                                                              {: RESULT = new If(condition, instructions); :} 
+            | IF vb_logical_op:condition THEN vb_code_statements:instructions ELSE vb_code_statements:elseInstructions END IF                                   {: RESULT = new If(condition, instructions, elseInstructions); :}
+            | IF vb_logical_op:condition THEN vb_code_statements:instructions vb_else_if:elseIfInstructions END IF                                              {: RESULT = new If(condition, instructions, elseIfInstructions, null); :}
+            | IF vb_logical_op:condition THEN vb_code_statements:instructions vb_else_if:elseIfInstructions ELSE vb_code_statements:elseInstructions END IF     {: RESULT = new If(condition, instructions, elseIfInstructions, elseInstructions); :}
+            ;
+
+vb_else_if::=   ELSEIF vb_logical_op:condition THEN vb_code_statements:instructions vb_else_if:instructionsList     {: instructionsList.addFirst(new If(condition, instructions));  RESULT = instructionsList; :}
+                | ELSEIF vb_logical_op:condition THEN vb_code_statements:instructions                                {: RESULT = new LinkedList<Instruction>(); RESULT.add(new If(condition, instructions)); :}
+                ;
+
+//---------------   Screen Messages   ---------------//
+vb_screen_messages::=   CONSOLE FULLSTOP WRITE PARENTHESISO vb_message:message PARENTHESISC        {: RESULT = new Print(message, PrintType.PRINT); :}       
+                        | CONSOLE FULLSTOP WRITELINE PARENTHESISO vb_message:message PARENTHESISC  {: RESULT = new Print(message, PrintType.PRINTLN); :}
+                        | CONSOLE FULLSTOP WRITE PARENTHESISO PARENTHESISC                         {: RESULT = new Print(null, PrintType.PRINT); :}
+                        | CONSOLE FULLSTOP WRITELINE PARENTHESISO PARENTHESISC                     {: RESULT = new Print(null, PrintType.PRINTLN); :}
+                        ;
+
+vb_message::=   LITERAL:value1 CONCAT vb_message:value2                {: RESULT = new Operation(new Operation(value1), value2, OperationType.CONCAT); :}
+                | CHARACTER:value1 CONCAT vb_message:value2            {: RESULT = new Operation(new Operation(value1), value2, OperationType.CONCAT); :}
+                | vb_arithmetic_op:value1 CONCAT vb_message:value2     {: RESULT = new Operation(value1, value2, OperationType.CONCAT); :}
+                | LITERAL:value                                        {: RESULT = new Operation(value); :}
+                | CHARACTER:value                                      {: RESULT = new Operation(value); :}
+                | vb_arithmetic_op:value                               {: RESULT = value; :}
+                ;
+
+//---------------   Data request   ---------------//
+vb_data_request::=   INTINPUT
+                    | FLOATINPUT
+                    | CHARINPUT
+                    ;
+
+
+
+
+
+//---------------   Switch Structure   ---------------//
+vb_switch::=    SELECT CASE ID CASE vb_switch_data vb_code_statements vb_switch_cases 
+                | SELECT CASE ID END SELECT
+                ;
+
+vb_switch_cases::=  CASE vb_switch_data vb_code_statements vb_switch_cases
+                    | END SELECT
+                    | CASE ELSE vb_code_statements END SELECT
+                    ;
+
+vb_switch_data::=   INTEGERNUM:value    {: RESULT = new Operation(value); :}
+                    | DOUBLENUM:value   {: RESULT = new Operation(value); :}
+                    | CHARACTER:value   {: RESULT = new Operation(value); :}
+                    ;
+
+
+

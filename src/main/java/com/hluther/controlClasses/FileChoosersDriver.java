@@ -44,8 +44,8 @@ public class FileChoosersDriver {
         if(selection == JFileChooser.APPROVE_OPTION){
             File file = fileChooser.getSelectedFile();
             data = filesDriver.readFile(file.toString());
-            name = file.getName();
-            extension = FilenameUtils.getExtension(name);
+            name = FilenameUtils.getBaseName(file.getName());
+            extension = FilenameUtils.getExtension(file.getName());
             path = file.getPath();
             return new VTab(name, extension, data, path, null); 
         }

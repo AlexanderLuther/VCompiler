@@ -31,7 +31,7 @@ public class VTabsCreator {
         scrollPane.setRowHeaderView(lineNumber);
         panel = new JPanel(new GridLayout());
         panel.add(scrollPane);
-        tabbedPane.addTab(vTab.getName(), panel); 
+        tabbedPane.addTab(vTab.getName() +"."+ vTab.getExtension(), panel); 
         return vTab;
     }
     
