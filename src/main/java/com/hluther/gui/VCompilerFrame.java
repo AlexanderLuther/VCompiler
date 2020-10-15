@@ -86,7 +86,7 @@ public class VCompilerFrame extends javax.swing.JFrame {
     }
     
     public void printMessage(String message){
-        messagesArea.setText(messagesArea.getText() + message);
+        messagesArea.setText(messagesArea.getText() + message + "\n");
     }
 
     @SuppressWarnings("unchecked")
@@ -345,6 +345,8 @@ public class VCompilerFrame extends javax.swing.JFrame {
         messagesArea.setEditable(false);
         messagesArea.setBackground(new java.awt.Color(43, 43, 43));
         messagesArea.setBorder(new javax.swing.border.LineBorder(new java.awt.Color(12, 173, 183), 1, true));
+        messagesArea.setFont(new java.awt.Font("Source Code Pro", 1, 14)); // NOI18N
+        messagesArea.setForeground(new java.awt.Color(255, 255, 255));
         messagesArea.setToolTipText("Area de Mensajes");
         messagesArea.setPreferredSize(new java.awt.Dimension(62, 20));
         jScrollPane1.setViewportView(messagesArea);

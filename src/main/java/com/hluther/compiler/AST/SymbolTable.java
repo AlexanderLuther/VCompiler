@@ -1,76 +1,112 @@
 package com.hluther.compiler.AST;
 
-import java.util.LinkedList;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+
 /**
- *
  * @author helmuth
  */
-public class SymbolTable extends LinkedList<Symbol>{
+public class SymbolTable{
 
-    public SymbolTable() {
-        super();
+    private Map<String, Symbol> table;
+    private SymbolTable previousTable;
+    private ArrayList<Method> methods;
+    private ArrayList<Class> classes;
+    
+    public SymbolTable(SymbolTable previousTable) {
+        this.table = new HashMap<>();
+        this.previousTable = previousTable;
+        this.methods = new ArrayList<>();
+        this.classes = new ArrayList<>();
     }
     
-    /**
-     * Método que busca una variable en la tabla de símbolos y devuelve su valor.
-     * @param id Identificador de la variable que quiere buscarse
-     * @return Valor de la variable que se buscaba, si no existe se devuelve nulo.
-     */
-    public Object getValue(String id) {
-        if (contains(id)){
-            for(Symbol s:this){
-                if(s.getId().equals(id)){
-                    return s.getValue();
-                }
+    public boolean addSymbol(Symbol symbol){
+        if(table.get(symbol.getId()) == null){
+            table.put(symbol.getId(), symbol);
+            return true;
+        } else{
+            return false;
+        }
+    }
+    
+    public Symbol getSymbol(String id) {
+        for (SymbolTable currentSymbolTable = this; currentSymbolTable != null; currentSymbolTable = currentSymbolTable.getPreviousTable()) {
+            Symbol symbol = (Symbol)(currentSymbolTable.getTable().get(id));
+            if (symbol != null) {
+                return symbol;
             }
         }
-        System.out.println("La variable "+id+" no existe en este ámbito.");
         return null;
     }
     
-    /**
-     * Método que asigna un value a una variable específica, si no la encuentra
-     * no realiza la asignación y despliega un mensaje de error.
-     * @param id Identificador de la variable que quiere buscarse
-     * @param value Valor que quiere asignársele a la variable buscada
-     */
-    void setValue(String id, Object value) {
-        for(Symbol s:this){
-            if(s.getId().equals(id)){
-                s.setValue(value);
-                return;
+    public boolean addMethod(Method method){
+        if (!methods.stream().noneMatch(currentMethod -> (currentMethod.getId().equals(method.getId())))) {
+            return false;
+        }
+        methods.add(method);
+        return true;
+    }
+    
+    public SymbolTable getPreviousTable(){
+        return previousTable;
+    }
+    
+    public Map<String, Symbol> getTable(){
+        return table;
+    }
+    
+    
+        
+    
+    /*
+
+    public String setVariable(Simbolo simbolo) {
+        for (Tabla currentSymbolTable = this; currentSymbolTable != null; currentSymbolTable = currentSymbolTable.getAnterior()) {
+            Simbolo encontro = (Simbolo) (currentSymbolTable.getTable().get(simbolo.getIdentificador()));
+            if (encontro != null) {
+                return "La variable con el identificador"
+                        + simbolo.getIdentificador() + " ya existe.";
             }
         }
-        System.out.println("La variable "+id+" no existe en este ámbito, por lo "
-                + "que no puede asignársele un valor.");
+        this.table.put(simbolo.getIdentificador(), simbolo);
+        return null;
     }
 
-    @Override
-    public boolean add(Symbol e) {
-        if (!contains(e.getId())) {
-            super.add(e);
-            return true;
+    
+
+    public String setFuncion(Funcion f) {
+        for (Funcion i : methods) {
+            if (f.getNombre().equalsIgnoreCase(i.getNombre())) {
+                return "La funcion con el identificador"
+                        + f.getNombre() + " ya existe.";
+            }
         }
-        System.out.println("La variable "+e.getId()+" no puede declararse porque ya existe en este ámbito");
-        return false;
+        this.methods.add(f);
+        return null;
     }
-    
-    @Override
-    public void addLast(Symbol e) {
-        if (!contains(e.getId())) {
-            super.add(e);
+
+    public Funcion getFuncion(String nombre) {
+        for (Tabla currentSymbolTable = this; currentSymbolTable != null; currentSymbolTable = currentSymbolTable.getAnterior()) {
+            for (Funcion f : currentSymbolTable.getFunciones()) {
+                if (f.getNombre().equalsIgnoreCase(nombre)) {
+                    return f;
+                }
+            }
         }
-        System.out.println("La variable "+e.getId()+" no puede declararse porque ya existe en este ámbito");
+        return null;
     }
-    
-    /**
-     * Metodo que busca una variable especifica.
-     * @param id
-     * @return True si existe la variable. De lo contrario false.
-     */
-    public boolean contains(String id){
-        return this.stream().anyMatch((Symbol s) -> s.getId().equals(id));
+
+
+    public void setTable(Map<String, Simbolo> Table) {
+        this.table = Table;
     }
-    
-}
-   
+
+    public void setAnterior(Tabla Anterior) {
+        this.previousTable = Anterior;
+    }
+
+    public ArrayList<Funcion> getFunciones() {
+        return methods;
+    }*/
+}    

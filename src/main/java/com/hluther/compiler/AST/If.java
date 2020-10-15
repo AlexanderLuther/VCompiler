@@ -1,5 +1,7 @@
 package com.hluther.compiler.AST;
 
+import com.hluther.controlClasses.ThreeAddressCodeDriver;
+import com.hluther.gui.VCompilerFrame;
 import java.util.LinkedList;
 /**
  * Clase que ejecuta las acciones de una instrucción si...entonces y que implementa
@@ -8,90 +10,95 @@ import java.util.LinkedList;
  */
 public class If implements Instruction{
 
-    private Operation condition;
-    private LinkedList<Instruction> instructionsList;
-    private LinkedList<Instruction> elseInstructionsList;
-    private LinkedList<Instruction> elseIfinstructionsList;
+    private final Instruction condition;
+    private final LinkedList<Instruction> instructions;
+    private final LinkedList<Instruction> elseInstructions;
     
     /**
-     * Primer constructor de la clase, este se utiliza cuando la instrucción no 
-     * tiene clausula ELSE.
-     * @param condition Condición del si..entonces
-     * @param instructionsList Lista de instrucciones que deberían ejecutarse si la condición se cumple
+     * Constructor utilizado cuando la sentencia solamente tiene un if 
+     * @param condition
+     * @param instructions
      */
-    public If(Operation condition, LinkedList<Instruction> instructionsList) {
+    public If(Instruction condition, LinkedList<Instruction> instructions) {
         this.condition = condition;
-        this.instructionsList = instructionsList;
+        this.instructions = instructions;
+        this.elseInstructions = new LinkedList<>();
     }
     
     /**
-     * Segundo constructor de la clase, este se utiliza cuando la instrucción tiene
-     * clausula ELSE.
-     * @param condition Condición del si..entonces
-     * @param instructionsList Lista de instrucciones que deberían ejecutarse si la condición se cumple
-     * @param elseInstructionsList Lista de instrucciones que deberían ejecutarse si la condición no se cumple
+     * Constructor utilizado cuando la sentencia tiene un if y un else 
+     * @param condition
+     * @param instructions
+     * @param elseInstructions
      */
-    public If(Operation condition, LinkedList<Instruction> instructionsList, LinkedList<Instruction> elseInstructionsList) {
+    public If(Instruction condition, LinkedList<Instruction> instructions, LinkedList<Instruction> elseInstructions) {
         this.condition = condition;
-        this.instructionsList = instructionsList;
-        this.elseInstructionsList = elseInstructionsList;
+        this.instructions = instructions;
+        this.elseInstructions = elseInstructions;
     }
     
-      /**
-     * Tercer constructor de la clase, este se utiliza cuando la instrucción tiene
-     * clausula IF (ELSE IF/ ELSE).
-     * @param condition Condición del si..entonces
-     * @param instructionsList Lista de instrucciones que deberían ejecutarse si la condición se cumple
-     * @param elseIfInstructionsList Lista de instrucciones que deberían ejecutarse si la condición ElSE IF se cumple
-     * @param elseInstructionsList Lista de instrucciones que deberían ejecutarse si la condición no se cumple
-     */
-    public If(Operation condition, LinkedList<Instruction> instructionsList, LinkedList<Instruction> elseIfInstructionsList, LinkedList<Instruction> elseInstructionsList) {
-        this.condition = condition;
-        this.instructionsList = instructionsList;
-        this.elseIfinstructionsList = elseIfInstructionsList;
-        this.elseInstructionsList = elseInstructionsList;
+    @Override
+    public String generateOnlyReadThreeAddressCode(ThreeAddressCodeDriver threeAddressCodeDriver) {
+        //Crear las variables a utilizar
+        String code;
+        String trueLabel;
+        String falseLabel;
+        String jumpLabel;
+        
+        //Agregar la condicion del if
+        code = condition.generateOnlyReadThreeAddressCode(threeAddressCodeDriver);
+        
+        //Obtener el valor de las etiquetas a utilizar si la condicion es falsa o verdadera.
+        trueLabel = threeAddressCodeDriver.removeLabel();
+        falseLabel = threeAddressCodeDriver.removeLabel();
+        
+        //Agregar la etiqueta verdadera y sus respectivas instrucciones.
+        code += trueLabel + ":\n";
+        for(var instruction : instructions){
+            code += instruction.generateOnlyReadThreeAddressCode(threeAddressCodeDriver);
+        }
+        jumpLabel = threeAddressCodeDriver.getNewLabel();
+        code += "goto " + jumpLabel + "\n";
+     
+        //Agregar la etiqueta falsa y sus respectivas instrucciones.
+        code += falseLabel + ":\n";
+        for(var instruction : elseInstructions){
+            code += instruction.generateOnlyReadThreeAddressCode(threeAddressCodeDriver);
+        }
+        
+        //Agregar una etiqueta para el salto desde la etiqueta verdadera
+        code += jumpLabel + ":\n";
+        
+        return code;
     }
-    
+
     /**
      * Método que ejecuta la instrucción si..entonces, es una sobreescritura del 
      * método ejecutar que se debe programar por la implementación de la interfaz
      * instrucción
-     * @param symbolTable tabla de símbolos del ámbito padre de la sentencia.
+     * @param symbolTable  tabla de símbolos del ámbito padre de la sentencia.
+     * @param ast
+     * @param vCompilerFrame
      * @return Estra instrucción retorna nulo porque no produce ningún valor en 
      * su ejecución
      */
     @Override
-    public Object analyze(SymbolTable symbolTable) {
+    public Object analyze(SymbolTable symbolTable, AbstractSyntaxTree ast, VCompilerFrame vCompilerFrame) {
+        //Analizar la condicion
+        condition.analyze(symbolTable, ast, vCompilerFrame);
         
-        if((Boolean)condition.analyze(symbolTable)){
-            SymbolTable localTable = new SymbolTable();
-            localTable.addAll(symbolTable);
-            for(var instruction: instructionsList){
-                instruction.analyze(localTable);
-            }
-            return true;
+        //Analizar las instrucciones del if
+        SymbolTable localTable = new SymbolTable(symbolTable);   
+        Object returnValue = null;
+        for(var instruction : instructions){
+            returnValue = instruction.analyze(localTable, ast, vCompilerFrame);
         }
-        else{
-            boolean bandera = false;
-            
-            if(elseIfinstructionsList != null){
-                for(var elseIfInstruction: elseIfinstructionsList){
-                    if((boolean)elseIfInstruction.analyze(symbolTable)){
-                        bandera = true;
-                        break;
-                    }
-                }
-            }
-            
-            if(elseInstructionsList != null && !bandera){
-                SymbolTable localTable = new SymbolTable();
-                localTable.addAll(symbolTable);
-                for(var elseInstruction: elseInstructionsList){
-                    elseInstruction.analyze(localTable);
-                }            
-            }
+        
+        //Analizar las instrucciones del else
+        for(var instruction : elseInstructions){
+            returnValue = instruction.analyze(localTable, ast, vCompilerFrame);
         }
-        return false;
+        
+        return returnValue;
     }
-        
 }

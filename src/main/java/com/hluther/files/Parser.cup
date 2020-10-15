@@ -2,101 +2,175 @@ package com.hluther.compiler.parser;
 import java_cup.runtime.*;
 import com.hluther.gui.VCompilerFrame;
 import com.hluther.compiler.lexer.VLexer;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import java.util.LinkedList;
-import com.hluther.compiler.AST.AccessModifier;
+import com.hluther.entityClasses.Id;
+import com.hluther.compiler.AST.AbstractSyntaxTree;
 import com.hluther.compiler.AST.Assignment;
+import com.hluther.compiler.AST.Case;
+import com.hluther.compiler.AST.JavaClass;
+import com.hluther.compiler.AST.Declaration;
 import com.hluther.compiler.AST.DoWhile;
 import com.hluther.compiler.AST.For;
-import com.hluther.compiler.AST.Function;
 import com.hluther.compiler.AST.If;
+import com.hluther.compiler.AST.Import;
+import com.hluther.compiler.AST.Import.ImportType;
+import com.hluther.compiler.AST.Input;
 import com.hluther.compiler.AST.Instruction;
+import com.hluther.compiler.AST.Method;
+import com.hluther.compiler.AST.Method.AccessModifier;
 import com.hluther.compiler.AST.Operation;
 import com.hluther.compiler.AST.Operation.OperationType;
 import com.hluther.compiler.AST.Print;
 import com.hluther.compiler.AST.Print.PrintType;
-import com.hluther.compiler.AST.Procedure;
-import com.hluther.compiler.AST.Statement;
-import com.hluther.compiler.AST.StatementAssignment;
-import com.hluther.compiler.AST.SymbolTable;
-import com.hluther.compiler.AST.Type;
+import com.hluther.compiler.AST.Return;
+import com.hluther.compiler.AST.Switch;
+import com.hluther.compiler.AST.Symbol.Type;
+import com.hluther.compiler.AST.Symbol.Role;
 import com.hluther.compiler.AST.While;
 
 parser code {:
 
     private VCompilerFrame vCompilerFrame;
-    private SymbolTable symbolTable;
-    private LinkedList<Instruction> AST;
+    private AbstractSyntaxTree abstractSyntaxTree;
 
     public VParser(VLexer vLexer, VCompilerFrame vCompilerFrame) { 
         super(vLexer);
         this.vCompilerFrame = vCompilerFrame;
-        this.symbolTable = new SymbolTable();
-        this.AST = new LinkedList<>();
     }
 
+    public AbstractSyntaxTree getAST(){
+        return abstractSyntaxTree;
+    }   
+
     /**
-     * Metodo que crea nuevas instancias de la clase Statement y las guarda en una lista enlazada.
+     * Metodo que crea nuevas instancias de la clase Declaration y las guarda en una lista enlazada.
      * @param varList Lista de id's para el atributo id de la instancia que se creara.
      * @param dataType Tipo de dato de todas las instancias que se crearan.
      * @return LinkedList con todas las instancias creadas.
      */
-    private LinkedList<Instruction> getStatements(LinkedList<String> varList, Type dataType){
+    private LinkedList<Instruction> getDeclarations(LinkedList<Id> varList, Type dataType){
         LinkedList<Instruction> declarations = new LinkedList<>();
-        for(String varName : varList){
-            declarations.add(new Statement(varName, dataType));
+        for(Id id : varList){
+            declarations.add(new Declaration(id.getId(), dataType, Role.VAR, id.getRow(), id.getColumn()));
         }
         return declarations;
     }
-
-
+    
     public void syntax_error(Symbol s){
         vCompilerFrame.printMessage("Error Sintactico: No se esperaba [" +s.value+ "]. Linea " +s.left+ " Columna " +s.right+"\n");
     }
 
     public void unrecovered_syntax_error(Symbol s){
-       
+        vCompilerFrame.printMessage("Error Sintactico: No se esperaba [" +s.value+ "]. Linea " +s.left+ " Columna " +s.right+"\n");
     } 
 :}
 
 /* Terminals */
 terminal            VB_SEPARATOR, J_SEPARATOR, P_SEPARATOR, C_SEPARATOR, DIM, AS, INTEGER, DOUBLE, CHAR, COMMA, PLUS, MINUS, MULTIPLICATION, DIVISION, MOD, PARENTHESISO, PARENTHESISC,
-                    SQUAREBRACKETO, SQUAREBRACKETC, EQUALS, LESSEQUALTHAN, GREATEREQUALTHAN, LESSTHAN, GREATERTHAN, NOTEQUAL, AND, NOT, OR, IF, THEN, ELSE, ELSEIF, PUBLIC, FUNCTION, END,
-                    RETURN, SUB, BYVAL, SELECT, CASE, WHILE, DO, LOOP, FOR, NEXT, TO, STEP, INTINPUT, FLOATINPUT, CHARINPUT, FULLSTOP, CONSOLE, WRITE, WRITELINE, CONCAT;                 
-terminal String     ID, LITERAL;
+                    SQUAREBRACKETO, SQUAREBRACKETC, EQUALS, LESSEQUALTHAN, GREATEREQUALTHAN, LESSTHAN, GREATERTHAN, NOTEQUAL, AND, NOT, OR, IF, THEN, ELSE, PUBLIC, FUNCTION, END, RETURN,
+                    SUB, BYVAL, SELECT, CASE, WHILE, DO, LOOP, FOR, NEXT, TO, STEP, INTINPUT, FLOATINPUT, CHARINPUT, FULLSTOP, CONSOLE, WRITE, WRITELINE, CONCAT, INCLUDE, VB_INCLUDE,
+                    PY_INCLUDE, J_INCLUDE_ALL, CONST, VOID, MAIN, FLOAT, CURLYBRACKETO, CURLYBRACKETC, SEMICOLON, COMPARATION, PRINTF, SWITCH, DEFAULT, COLON, BREAK, INTTYPE, CHARTYPE, 
+                    FLOATTYPE, SCANF, AMPERSAND, CLRSCR, GETCH, CLASS, SYSTEM, OUT, PRINT, PRINTLN;                 
+terminal String     ID, LITERAL, J_INCLUDE;
 terminal Integer    INTEGERNUM;
 terminal char       CHARACTER;
 terminal Double     DOUBLENUM;
 
 /* Non-terminals */
-non terminal                            s, vb_switch, vb_switch_cases, vb_data_request;
-non terminal Type                       vb_data_type, vb_for_data_type;
-non terminal Instruction                vb_function, vb_procedure, vb_assignment, vb_statement_assignment, vb_while, vb_do_while, vb_for, vb_if, vb_screen_messages;
-non terminal Operation                  vb_arithmetic_op, vb_term, vb_factor, vb_op_value, vb_relational_op, vb_logical_op, vb_logical_term, vb_logical_factor, vb_switch_data, vb_message;
-non terminal AccessModifier             vb_access_modifier;
-non terminal LinkedList<Instruction>    vb_code, vb_code_statements, vb_statement, vb_multiple_type_statement, vb_else_if;
-non terminal LinkedList<Type>           vb_params;
-non terminal LinkedList<String>         vb_var_list;
+non terminal                            s, c_scanf, c_scanf_type, c_clrscr, c_getch;
 
-precedence left NOT;
-precedence left AND;
+non terminal Type                       vb_data_type,
+                                        c_data_type,
+                                        java_data_type, java_method_type;
+
+non terminal Instruction                vb_function, vb_procedure, vb_assignment, vb_while, vb_do_while, vb_for, vb_if, vb_screen_messages, vb_switch, vb_data_request,
+                                        c_assignment, c_while, c_do_while, c_for, c_if, c_screen_messages, c_switch,
+                                        java_class, java_assignment, java_data_request, java_method, java_while, java_do_while, java_for, java_if, java_screen_messages, java_switch;
+
+non terminal Operation                  arithmetic_op, term, factor, op_value, relational_op, logical_op, logical_term, logical_factor, vb_switch_data, vb_message, vb_request_message,
+                                        c_message, c_switch_data,
+                                        java_message, java_message_data2, java_message_data1, java_switch_data;
+
+non terminal AccessModifier      vb_access_modifier;
+
+non terminal LinkedList<Instruction>    vb_code, vb_code_statements, vb_declaration, vb_declaration_assignment, vb_multiple_type_declaration,
+                                        c_global_statements, c_code_statements, c_declaration, c_declaration_assignment, c_main, c_code, c_code_imports,
+                                        java_code, java_class_statements, java_declaration, java_declaration_assignment, java_code_statements;
+   
+non terminal LinkedList<Declaration>    vb_params,
+                                        java_params;
+
+non terminal LinkedList<Id>             vb_var_list, 
+                                        c_var_list,
+                                        java_var_list;
+
+non terminal LinkedList<Case>           vb_switch_cases, 
+                                        c_switch_cases,
+                                        java_switch_cases;
 precedence left OR;
-precedence left MULTIPLICATION, DIVISION;
-precedence left MOD;
+precedence left AND;
+precedence left COMPARATION, GREATEREQUALTHAN, LESSEQUALTHAN, LESSTHAN, GREATERTHAN, NOTEQUAL;
 precedence left PLUS, MINUS;
+precedence left MOD;
+precedence left MULTIPLICATION, DIVISION;
+precedence left NOT;
 
 /* The grammar */
 start with s;
 
-s::=    VB_SEPARATOR vb_code:code 
-        {:      
-            for(var instruction : code){
-                instruction.analyze(symbolTable);
-            }
+/*------------------------------------------------    GENERAL SECTION  ------------------------------------------------*/
+s::=    VB_SEPARATOR vb_code:vbInstructions J_SEPARATOR  java_code:javaInstructions P_SEPARATOR C_SEPARATOR c_code:cInstructions
+        {:
+            abstractSyntaxTree = new AbstractSyntaxTree(vbInstructions, javaInstructions, null, cInstructions);
         :}
         ;
 
+//---------------   Arithmetic Expressions   ---------------//     
+arithmetic_op::=    arithmetic_op:value1 PLUS term:value2     {: RESULT = new Operation(value1, value2, OperationType.SUM); :}
+                    | arithmetic_op:value1 MINUS term:value2  {: RESULT = new Operation(value1, value2, OperationType.SUBTRACTION); :}
+                    | term:value                              {: RESULT = value; :}
+                    ;    
+
+term::=     term:value1 MULTIPLICATION factor:value2  {: RESULT = new Operation(value1, value2, OperationType.MULTIPLICATION); :}
+            | term:value1 DIVISION factor:value2      {: RESULT = new Operation(value1, value2, OperationType.DIVISION); :}
+            | term:value1 MOD factor:value2           {: RESULT = new Operation(value1, value2, OperationType.MOD); :}
+            | factor:value                            {: RESULT = value; :}
+            ;
+
+factor::=   PLUS op_value:value      {: RESULT = new Operation(value, OperationType.PLUS); :}
+            | MINUS op_value:value   {: RESULT = new Operation(value, OperationType.MINUS); :}
+            | op_value:value         {: RESULT = value; :}
+            ;
+
+op_value::=     PARENTHESISO arithmetic_op:value PARENTHESISC    {: RESULT = value; :}
+                | INTEGERNUM:value                               {: RESULT = new Operation(value); :}   
+                | DOUBLENUM:value                                {: RESULT = new Operation(value); :}
+                | ID:varName                                     {: RESULT = new Operation(varName, OperationType.ID, varNameleft, varNameright); :}
+                | CHARACTER:value                                {: RESULT = new Operation(value); :}
+                ;
+
+//---------------   Relational Expressions   ---------------//     
+relational_op::=     arithmetic_op:value1 COMPARATION arithmetic_op:value2        {: RESULT = new Operation(value1, value2, OperationType.EQUALS); :}        
+                    | arithmetic_op:value1 LESSEQUALTHAN arithmetic_op:value2     {: RESULT = new Operation(value1, value2, OperationType.LESS_EQUAL_THAN); :}
+                    | arithmetic_op:value1 GREATEREQUALTHAN arithmetic_op:value2  {: RESULT = new Operation(value1, value2, OperationType.GREATER_EQUAL_THAN); :}
+                    | arithmetic_op:value1 LESSTHAN arithmetic_op:value2          {: RESULT = new Operation(value1, value2, OperationType.LESS_THAN); :}
+                    | arithmetic_op:value1 GREATERTHAN arithmetic_op:value2       {: RESULT = new Operation(value1, value2, OperationType.GREATER_THAN); :}
+                    | arithmetic_op:value1 NOTEQUAL arithmetic_op:value2          {: RESULT = new Operation(value1, value2, OperationType.NOTEQUAL); :}
+                    ;
+
+//---------------   Logical Expressions   ---------------// 
+logical_op::=   logical_op:value1 AND logical_term:value2     {: RESULT = new Operation(value1, value2, OperationType.AND); :}
+                | logical_op:value1 OR logical_term:value2    {: RESULT = new Operation(value1, value2, OperationType.OR); :}
+                | logical_term:value                          {: RESULT = value; :}
+                ;
+
+logical_term::=     NOT logical_factor:value     {: RESULT = new Operation(value, OperationType.NOT); :}             
+                    | logical_factor:value       {: RESULT = value; :}
+                    ;
+
+logical_factor::=   PARENTHESISO logical_op:value PARENTHESISC   {: RESULT = value; :}
+                    | relational_op:value                        {: RESULT = value; :}
+                    ;
 
 
 
@@ -108,181 +182,118 @@ vb_code::=  vb_function:instruction vb_code:instructionsList    {: instructionsL
             |                                                   {: RESULT = new LinkedList<Instruction>(); :}
             ;
 
-vb_code_statements::=   vb_statement:instructions vb_code_statements:instructionsList                {: instructionsList.addAll(0, instructions); RESULT = instructionsList; :}
-                        | vb_statement_assignment:instruction vb_code_statements:instructionsList    {: instructionsList.addFirst(instruction); RESULT = instructionsList; :}
+vb_code_statements::=   vb_declaration:instructions vb_code_statements:instructionsList              {: instructionsList.addAll(0, instructions); RESULT = instructionsList; :}
+                        | vb_declaration_assignment:instructions vb_code_statements:instructionsList {: instructionsList.addAll(0, instructions); RESULT = instructionsList; :}
                         | vb_assignment:instruction vb_code_statements:instructionsList              {: instructionsList.addFirst(instruction); RESULT = instructionsList; :}
                         | vb_while:instruction vb_code_statements:instructionsList                   {: instructionsList.addFirst(instruction); RESULT = instructionsList; :}
                         | vb_do_while:instruction vb_code_statements:instructionsList                {: instructionsList.addFirst(instruction); RESULT = instructionsList; :}
                         | vb_for:instruction vb_code_statements:instructionsList                     {: instructionsList.addFirst(instruction); RESULT = instructionsList; :}
                         | vb_if:instruction vb_code_statements:instructionsList                      {: instructionsList.addFirst(instruction); RESULT = instructionsList; :}
-                        | vb_switch vb_code_statements
-                        | vb_data_request vb_code_statements
+                        | vb_switch:instruction vb_code_statements:instructionsList                  {: instructionsList.addFirst(instruction); RESULT = instructionsList; :}
                         | vb_screen_messages:instruction vb_code_statements:instructionsList         {: instructionsList.addFirst(instruction); RESULT = instructionsList; :}
-                        | RETURN CHARACTER vb_code_statements
-                        | RETURN vb_arithmetic_op vb_code_statements
+                        | vb_data_request:instruction vb_code_statements:instructionsList            {: instructionsList.addFirst(instruction); RESULT = instructionsList; :}
+                        | RETURN arithmetic_op:instruction vb_code_statements:instructionsList       {: instructionsList.addFirst(new Return(instruction)); RESULT = instructionsList; :}
                         |                                                                            {: RESULT = new LinkedList<Instruction>(); :}
                         ;
                     
 //---------------   Functions && Procedures   ---------------//
-vb_function::=  vb_access_modifier:accessModifier FUNCTION ID:name PARENTHESISO BYVAL vb_params:params PARENTHESISC AS vb_data_type:returnType vb_code_statements:instructionsList END FUNCTION {: RESULT = new Function(accessModifier, returnType, name, params, instructionsList); :}
-                | vb_access_modifier:accessModifier FUNCTION ID:name PARENTHESISO PARENTHESISC AS vb_data_type:returnType vb_code_statements:instructionsList END FUNCTION                      {: RESULT = new Function(accessModifier, returnType, name, null, instructionsList); :}
+vb_function::=  vb_access_modifier:accessModifier FUNCTION ID:name PARENTHESISO BYVAL vb_params:params PARENTHESISC AS vb_data_type:returnType vb_code_statements:instructionsList END FUNCTION {: RESULT = new Method(accessModifier, returnType, name, params, instructionsList, nameleft, nameright); :}
+                | vb_access_modifier:accessModifier FUNCTION ID:name PARENTHESISO PARENTHESISC AS vb_data_type:returnType vb_code_statements:instructionsList END FUNCTION                      {: RESULT = new Method(accessModifier, returnType, name, instructionsList, nameleft, nameright); :}
                 ;
 
-vb_procedure::= vb_access_modifier:accessModifier SUB ID:name PARENTHESISO BYVAL vb_params:params PARENTHESISC vb_code_statements:instructionsList END SUB  {: RESULT = new Procedure(accessModifier, name, params, instructionsList); :} 
-                | vb_access_modifier:accessModifier SUB ID:name PARENTHESISO PARENTHESISC vb_code_statements:instructionsList END SUB                       {: RESULT = new Procedure(accessModifier, name, null, instructionsList); :}
+vb_procedure::= vb_access_modifier:accessModifier SUB ID:name PARENTHESISO BYVAL vb_params:params PARENTHESISC vb_code_statements:instructionsList END SUB {: RESULT = new Method(accessModifier, Type.VOID, name, params, instructionsList, nameleft, nameright); :} 
+                | vb_access_modifier:accessModifier SUB ID:name PARENTHESISO PARENTHESISC vb_code_statements:instructionsList END SUB                      {: RESULT = new Method(accessModifier, Type.VOID, name, instructionsList, nameleft, nameright); :}
                 ;
 
 vb_access_modifier::=   PUBLIC  {: RESULT = AccessModifier.PUBLIC; :}
                         |       {: RESULT = AccessModifier.DEFAULT; :}
                         ;
 
-vb_params::=    ID AS vb_data_type:dataType COMMA vb_params:paramsList  {: paramsList.addFirst(dataType); RESULT = paramsList; :}
-                | ID AS vb_data_type:dataType                           {: RESULT = new LinkedList<Type>(); RESULT.add(dataType); :}
+vb_params::=    ID:paramName AS vb_data_type:dataType COMMA vb_params:paramsList  {: paramsList.addFirst(new Declaration(paramName, dataType, Role.PARAM, paramNameleft, paramNameright)); RESULT = paramsList; :}
+                | ID:paramName AS vb_data_type:dataType                           {: RESULT = new LinkedList<Declaration>(); RESULT.add(new Declaration(paramName, dataType, Role.PARAM, paramNameleft, paramNameright)); :}
                 ;
 
-//---------------   Statements  ---------------//
-vb_statement::=     DIM ID:varName COMMA vb_var_list:varList AS vb_data_type:dataType COMMA vb_multiple_type_statement:statementsList {: varList.addFirst(varName); statementsList.addAll(0, getStatements(varList, dataType)); RESULT = statementsList; :}
-                    | DIM ID:varName AS vb_data_type:dataType COMMA vb_multiple_type_statement:statementsList                         {: statementsList.add(new Statement(varName, dataType)); RESULT = statementsList; :}
-                    | DIM ID:varName COMMA vb_var_list:varList AS vb_data_type:dataType                                               {: varList.addFirst(varName); RESULT = getStatements(varList, dataType); :}
-                    | DIM ID:varName AS vb_data_type:dataType                                                                         {: RESULT = new LinkedList<Instruction>(); RESULT.add(new Statement(varName, dataType)); :}
+//---------------   Declarations  ---------------//
+vb_declaration::=   DIM ID:varName COMMA vb_var_list:varList AS vb_data_type:dataType COMMA vb_multiple_type_declaration:statementsList {: varList.addFirst(new Id(varName, varNameleft, varNameright)); statementsList.addAll(0, getDeclarations(varList, dataType)); RESULT = statementsList; :}
+                    | DIM ID:varName AS vb_data_type:dataType COMMA vb_multiple_type_declaration:statementsList                         {: statementsList.add(new Declaration(varName, dataType, Role.VAR, varNameleft, varNameright)); RESULT = statementsList; :}
+                    | DIM ID:varName COMMA vb_var_list:varList AS vb_data_type:dataType                                                 {: varList.addFirst(new Id(varName, varNameleft, varNameright)); RESULT = getDeclarations(varList, dataType); :}
+                    | DIM ID:varName AS vb_data_type:dataType                                                                           {: RESULT = new LinkedList<Instruction>(); RESULT.add(new Declaration(varName, dataType, Role.VAR, varNameleft, varNameright)); :}
                     ;
 
-vb_var_list::=  ID:varName COMMA vb_var_list:varList    {: varList.addFirst(varName); RESULT = varList; :}
-                | ID:varName                            {: RESULT = new LinkedList<String>(); RESULT.add(varName); :}
+vb_var_list::=  ID:varName COMMA vb_var_list:varList    {: varList.addFirst(new Id(varName, varNameleft, varNameright)); RESULT = varList; :}
+                | ID:varName                            {: RESULT = new LinkedList<Id>(); RESULT.add(new Id(varName, varNameleft, varNameright)); :}
                 ;  
 
-vb_multiple_type_statement::=   ID:varName COMMA vb_var_list:varList AS vb_data_type:dataType COMMA vb_multiple_type_statement:statementsList {: varList.addFirst(varName); statementsList.addAll(0, getStatements(varList, dataType)); RESULT = statementsList; :}
-                                | ID:varName AS vb_data_type:dataType COMMA vb_multiple_type_statement:statementsList                         {: statementsList.add(new Statement(varName, dataType)); RESULT = statementsList; :}
-                                | ID:varName COMMA vb_var_list:varList AS vb_data_type:dataType                                               {: varList.addFirst(varName); RESULT = getStatements(varList, dataType); :}
-                                | ID:varName AS vb_data_type:dataType                                                                         {: RESULT = new LinkedList<Instruction>(); RESULT.add(new Statement(varName, dataType)); :}
-                                ;
+vb_multiple_type_declaration::=     ID:varName COMMA vb_var_list:varList AS vb_data_type:dataType COMMA vb_multiple_type_declaration:statementsList   {: varList.addFirst(new Id(varName, varNameleft, varNameright)); statementsList.addAll(0, getDeclarations(varList, dataType)); RESULT = statementsList; :}
+                                    | ID:varName AS vb_data_type:dataType COMMA vb_multiple_type_declaration:statementsList                             {: statementsList.add(new Declaration(varName, dataType, Role.VAR, varNameleft, varNameright)); RESULT = statementsList; :}
+                                    | ID:varName COMMA vb_var_list:varList AS vb_data_type:dataType                                                     {: varList.addFirst(new Id(varName, varNameleft, varNameright)); RESULT = getDeclarations(varList, dataType); :}
+                                    | ID:varName AS vb_data_type:dataType                                                                               {: RESULT = new LinkedList<Instruction>(); RESULT.add(new Declaration(varName, dataType, Role.VAR, varNameleft, varNameright)); :}
+                                    ;
 
 //---------------   Assignments  ---------------//
-vb_assignment::=    ID:varName EQUALS CHARACTER:value               {: RESULT = new Assignment(varName, new Operation(value)); :}
-                    | ID:varName EQUALS vb_arithmetic_op:value      {: RESULT = new Assignment(varName, value); :}
-                    | ID:varName EQUALS vb_data_request:value
+vb_assignment::=    ID:varName COMPARATION arithmetic_op:value      {: RESULT = new Assignment(varName, value, varNameleft, varNameright); :}
+                    | ID:varName COMPARATION vb_data_request:value  {: RESULT = new Assignment(varName, value, varNameleft, varNameright); :}
                     ;
 
-//---------------   Statements && Assignments   ---------------//
-vb_statement_assignment::=  DIM ID:varName AS vb_data_type:dataType EQUALS CHARACTER:value              {: RESULT = new StatementAssignment(varName, new Operation(value), dataType); :}          
-                            | DIM ID:varName AS vb_data_type:dataType EQUALS vb_arithmetic_op:value     {: RESULT = new StatementAssignment(varName, value, dataType); :}
-                            | DIM ID:varName AS vb_data_type:dataType EQUALS vb_data_request:value  
-                            ;
+//---------------   Declarations && Assignments   ---------------//
+vb_declaration_assignment::=    DIM ID:varName AS vb_data_type:dataType COMPARATION arithmetic_op:value         {: RESULT = new LinkedList<Instruction>(); RESULT.addFirst(new Declaration(varName, dataType, Role.VAR, varNameleft, varNameright)); RESULT.addLast(new Assignment(varName, value, varNameleft, varNameright)); :}
+                                | DIM ID:varName AS vb_data_type:dataType COMPARATION vb_data_request:value     {: RESULT = new LinkedList<Instruction>(); RESULT.addFirst(new Declaration(varName, dataType, Role.VAR, varNameleft, varNameright)); RESULT.addLast(new Assignment(varName, value, varNameleft, varNameright)); :}
+                                ;
 
-vb_data_type::=     INTEGER     {: RESULT = Type.INTEGER; :}
-                    | DOUBLE    {: RESULT = Type.DOUBLE; :}
+vb_data_type::=     INTEGER     {: RESULT = Type.INT; :}
+                    | DOUBLE    {: RESULT = Type.FLOAT; :}
                     | CHAR      {: RESULT = Type.CHAR; :}
                     ;
 
-//---------------   Arithmetic Expressions   ---------------//     
-vb_arithmetic_op::=     vb_arithmetic_op:value1 PLUS vb_term:value2     {: RESULT = new Operation(value1, value2, OperationType.SUM); :}
-                        | vb_arithmetic_op:value1 MINUS vb_term:value2  {: RESULT = new Operation(value1, value2, OperationType.SUBTRACTION); :}
-                        | vb_term:value                                 {: RESULT = value; :}
-                        ;    
-
-vb_term::=      vb_term:value1 MULTIPLICATION vb_factor:value2  {: RESULT = new Operation(value1, value2, OperationType.MULTIPLICATION); :}
-                | vb_term:value1 DIVISION vb_factor:value2      {: RESULT = new Operation(value1, value2, OperationType.DIVISION); :}
-                | vb_term:value1 MOD vb_factor:value2           {: RESULT = new Operation(value1, value2, OperationType.MOD); :}
-                | vb_factor:value                               {: RESULT = value; :}
-                ;
-
-vb_factor::=    PLUS vb_op_value:value      {: RESULT = new Operation(value, OperationType.PLUS); :}
-                | MINUS vb_op_value:value   {: RESULT = new Operation(value, OperationType.MINUS); :}
-                | vb_op_value:value         {: RESULT = value; :}
-                ;
-
-vb_op_value::=  PARENTHESISO vb_arithmetic_op:value PARENTHESISC    {: RESULT = value; :}
-                | INTEGERNUM:value                                  {: RESULT = new Operation(value); :}   
-                | DOUBLENUM:value                                   {: RESULT = new Operation(value); :}
-                | ID:varName                                        {: RESULT = new Operation(varName); :}
-                ;
-
-//---------------   Relational Expressions   ---------------//     
-vb_relational_op::=     vb_arithmetic_op:value1 EQUALS vb_arithmetic_op:value2              {: RESULT = new Operation(value1, value2, OperationType.EQUALS); :}
-                        | vb_arithmetic_op:value1 LESSEQUALTHAN vb_arithmetic_op:value2     {: RESULT = new Operation(value1, value2, OperationType.LESS_EQUAL_THAN); :}
-                        | vb_arithmetic_op:value1 GREATEREQUALTHAN vb_arithmetic_op:value2  {: RESULT = new Operation(value1, value2, OperationType.GREATER_EQUAL_THAN); :}
-                        | vb_arithmetic_op:value1 LESSTHAN vb_arithmetic_op:value2          {: RESULT = new Operation(value1, value2, OperationType.LESS_THAN); :}
-                        | vb_arithmetic_op:value1 GREATERTHAN vb_arithmetic_op:value2       {: RESULT = new Operation(value1, value2, OperationType.GREATER_THAN); :}
-                        | vb_arithmetic_op:value1 NOTEQUAL vb_arithmetic_op:value2          {: RESULT = new Operation(value1, value2, OperationType.NOTEQUAL); :}
-                        ;
-
-//---------------   Logical Expressions   ---------------// 
-vb_logical_op::=    vb_logical_op:value1 AND vb_logical_term:value2     {: RESULT = new Operation(value1, value2, OperationType.AND); :}
-                    | vb_logical_op:value1 OR vb_logical_term:value2    {: RESULT = new Operation(value1, value2, OperationType.OR); :}
-                    | vb_logical_term:value                             {: RESULT = value; :}
-                    ;
-
-vb_logical_term::=  NOT vb_logical_factor:value     {: RESULT = new Operation(value, OperationType.NOT); :}             
-                    | vb_logical_factor:value       {: RESULT = value; :}
-                    ;
-
-vb_logical_factor::=    PARENTHESISO vb_logical_op:value PARENTHESISC   {: RESULT = value; :}
-                        | vb_relational_op:value                        {: RESULT = value; :}
-                        ;
-
 //---------------   While Structure   ---------------//
-vb_while::=     WHILE vb_logical_op:condition vb_code_statements:instructions END WHILE  {: RESULT = new While(condition, instructions); :}
+vb_while::=     WHILE logical_op:condition vb_code_statements:instructions END WHILE  {: RESULT = new While(condition, instructions); :}
                 ;
 
 //---------------   Do-While Structure   ---------------//
-vb_do_while::=  DO vb_code_statements:instructions LOOP WHILE vb_logical_op:condition   {: RESULT = new DoWhile(condition, instructions); :}
+vb_do_while::=  DO vb_code_statements:instructions LOOP WHILE logical_op:condition   {: RESULT = new DoWhile(condition, instructions); :}
                 ;
 
 //---------------   For Structure   ---------------//
-vb_for::=   FOR ID:varName AS vb_for_data_type:dataType EQUALS vb_arithmetic_op:counterValue TO vb_arithmetic_op:limitValue STEP vb_arithmetic_op:stepValue vb_code_statements:instructions NEXT    {: RESULT = new For(new StatementAssignment(varName, counterValue, dataType), limitValue, stepValue, instructions); :} 
-            | FOR ID:varName EQUALS vb_arithmetic_op:counterValue TO vb_arithmetic_op:limitValue STEP vb_arithmetic_op:stepValue vb_code_statements:instructions NEXT                               {: RESULT = new For(new Assignment(varName, counterValue), limitValue, stepValue, instructions); :}                     
-            | FOR ID:varName AS vb_for_data_type:dataType EQUALS vb_arithmetic_op:counterValue TO vb_arithmetic_op:limitValue vb_code_statements:instructions NEXT                                  {: RESULT = new For(new StatementAssignment(varName, counterValue, dataType), limitValue, new Operation(1), instructions); :}
-            | FOR ID:varName EQUALS vb_arithmetic_op:counterValue TO vb_arithmetic_op:limitValue vb_code_statements:instructions NEXT                                                               {: RESULT = new For(new Assignment(varName, counterValue), limitValue, new Operation(1), instructions); :}
+vb_for::=  FOR ID:varName COMPARATION arithmetic_op:value1 TO arithmetic_op:value2 STEP arithmetic_op:value3 vb_code_statements:instructions NEXT 
+            {:  Assignment assignment = new Assignment(varName, value1, varNameleft, varNameright);
+                Operation condition = new Operation(new Operation(varName, OperationType.ID, varNameleft, varNameright), value2, OperationType.LESS_EQUAL_THAN);
+                Assignment increasing = new Assignment(varName, new Operation(new Operation(varName, OperationType.ID, varNameleft, varNameright), value3, OperationType.SUM), varNameleft, varNameright);
+                RESULT = new For(assignment, condition, increasing, instructions);
+            :}
+            | FOR ID:varName COMPARATION arithmetic_op:value1 TO arithmetic_op:value2 vb_code_statements:instructions NEXT  
+            {:  Assignment assignment = new Assignment(varName, value1, varNameleft, varNameright);
+                Operation condition = new Operation(value1, value2, OperationType.LESS_EQUAL_THAN);
+                Assignment increasing = new Assignment(varName, new Operation(new Operation(varName, OperationType.ID, varNameleft, varNameright), new Operation(1), OperationType.SUM), varNameleft, varNameright);
+                RESULT = new For(assignment, condition, increasing, instructions);
+             :}
+            | FOR ID:varName AS vb_data_type:dataType COMPARATION arithmetic_op:value1 TO arithmetic_op:value2 STEP arithmetic_op:value3 vb_code_statements:instructions NEXT 
+            {:  Declaration declaration = new Declaration(varName, dataType, Role.VAR, varNameleft, varNameright);
+                Assignment assignment = new Assignment(varName, value1, varNameleft, varNameright);
+                Operation condition = new Operation(new Operation(varName, OperationType.ID, varNameleft, varNameright), value2, OperationType.LESS_EQUAL_THAN);
+                Assignment increasing = new Assignment(varName, new Operation(new Operation(varName, OperationType.ID, varNameleft, varNameright), value3, OperationType.SUM), varNameleft, varNameright);
+                RESULT = new For(declaration, assignment, condition, increasing, instructions);
+            :}
+            | FOR ID:varName AS vb_data_type:dataType COMPARATION arithmetic_op:value1 TO arithmetic_op:value2 vb_code_statements:instructions NEXT  
+            {:  Declaration declaration = new Declaration(varName, dataType, Role.VAR, varNameleft, varNameright);
+                Assignment assignment = new Assignment(varName, value1, varNameleft, varNameright);
+                Operation condition = new Operation(value1, value2, OperationType.LESS_EQUAL_THAN);
+                Assignment increasing = new Assignment(varName, new Operation(new Operation(varName, OperationType.ID, varNameleft, varNameright), new Operation(1), OperationType.SUM), varNameleft, varNameright);
+                RESULT = new For(declaration, assignment, condition, increasing, instructions);
+             :}
             ;
-
-vb_for_data_type::=     INTEGER     {: RESULT = Type.INTEGER; :}
-                        | DOUBLE    {: RESULT = Type.DOUBLE; :}
-                        ;
 
 //---------------   If Structure   ---------------//
-vb_if::=    IF vb_logical_op:condition THEN vb_code_statements:instructions END IF                                                                              {: RESULT = new If(condition, instructions); :} 
-            | IF vb_logical_op:condition THEN vb_code_statements:instructions ELSE vb_code_statements:elseInstructions END IF                                   {: RESULT = new If(condition, instructions, elseInstructions); :}
-            | IF vb_logical_op:condition THEN vb_code_statements:instructions vb_else_if:elseIfInstructions END IF                                              {: RESULT = new If(condition, instructions, elseIfInstructions, null); :}
-            | IF vb_logical_op:condition THEN vb_code_statements:instructions vb_else_if:elseIfInstructions ELSE vb_code_statements:elseInstructions END IF     {: RESULT = new If(condition, instructions, elseIfInstructions, elseInstructions); :}
+vb_if::=    IF logical_op:condition THEN vb_code_statements:instructions END IF                                             {: RESULT = new If(condition, instructions); :} 
+            | IF logical_op:condition THEN vb_code_statements:instructions ELSE vb_code_statements:elseInstructions END IF  {: RESULT = new If(condition, instructions, elseInstructions); :} 
             ;
 
-vb_else_if::=   ELSEIF vb_logical_op:condition THEN vb_code_statements:instructions vb_else_if:instructionsList     {: instructionsList.addFirst(new If(condition, instructions));  RESULT = instructionsList; :}
-                | ELSEIF vb_logical_op:condition THEN vb_code_statements:instructions                                {: RESULT = new LinkedList<Instruction>(); RESULT.add(new If(condition, instructions)); :}
-                ;
-
-//---------------   Screen Messages   ---------------//
-vb_screen_messages::=   CONSOLE FULLSTOP WRITE PARENTHESISO vb_message:message PARENTHESISC        {: RESULT = new Print(message, PrintType.PRINT); :}       
-                        | CONSOLE FULLSTOP WRITELINE PARENTHESISO vb_message:message PARENTHESISC  {: RESULT = new Print(message, PrintType.PRINTLN); :}
-                        | CONSOLE FULLSTOP WRITE PARENTHESISO PARENTHESISC                         {: RESULT = new Print(null, PrintType.PRINT); :}
-                        | CONSOLE FULLSTOP WRITELINE PARENTHESISO PARENTHESISC                     {: RESULT = new Print(null, PrintType.PRINTLN); :}
-                        ;
-
-vb_message::=   LITERAL:value1 CONCAT vb_message:value2                {: RESULT = new Operation(new Operation(value1), value2, OperationType.CONCAT); :}
-                | CHARACTER:value1 CONCAT vb_message:value2            {: RESULT = new Operation(new Operation(value1), value2, OperationType.CONCAT); :}
-                | vb_arithmetic_op:value1 CONCAT vb_message:value2     {: RESULT = new Operation(value1, value2, OperationType.CONCAT); :}
-                | LITERAL:value                                        {: RESULT = new Operation(value); :}
-                | CHARACTER:value                                      {: RESULT = new Operation(value); :}
-                | vb_arithmetic_op:value                               {: RESULT = value; :}
-                ;
-
-//---------------   Data request   ---------------//
-vb_data_request::=   INTINPUT
-                    | FLOATINPUT
-                    | CHARINPUT
-                    ;
-
-
-
-
-
 //---------------   Switch Structure   ---------------//
-vb_switch::=    SELECT CASE ID CASE vb_switch_data vb_code_statements vb_switch_cases 
-                | SELECT CASE ID END SELECT
+vb_switch::=    SELECT CASE ID:varName vb_switch_cases:instructions     {: RESULT = new Switch(new Operation(varName, OperationType.ID, varNameleft, varNameright), instructions); :} 
                 ;
 
-vb_switch_cases::=  CASE vb_switch_data vb_code_statements vb_switch_cases
-                    | END SELECT
-                    | CASE ELSE vb_code_statements END SELECT
+vb_switch_cases::=  CASE vb_switch_data:value vb_code_statements:instructions vb_switch_cases:instructionsList  {: instructionsList.addFirst(new Case(value, instructions, valueleft, valueright));  RESULT = instructionsList; :}
+                    | END SELECT                                                                                {: RESULT = new LinkedList<Case>(); :}
+                    | CASE ELSE vb_code_statements:instructions END SELECT                                      {: RESULT = new LinkedList<Case>(); RESULT.add(new Case(instructions)); :}
                     ;
 
 vb_switch_data::=   INTEGERNUM:value    {: RESULT = new Operation(value); :}
@@ -290,5 +301,356 @@ vb_switch_data::=   INTEGERNUM:value    {: RESULT = new Operation(value); :}
                     | CHARACTER:value   {: RESULT = new Operation(value); :}
                     ;
 
+//---------------   Screen Messages   ---------------//
+vb_screen_messages::=   CONSOLE FULLSTOP WRITE PARENTHESISO vb_message:message PARENTHESISC        {: RESULT = new Print(message, PrintType.PRINT); :}       
+                        | CONSOLE FULLSTOP WRITELINE PARENTHESISO vb_message:message PARENTHESISC  {: RESULT = new Print(message, PrintType.PRINTLN); :}
+                        ;
+
+vb_message::=   LITERAL:value1 CONCAT vb_message:value2             {: RESULT = new Operation(new Operation(value1, OperationType.LITERAL, value1left, value1right), value2, OperationType.CONCAT); :}
+                | arithmetic_op:value1 CONCAT vb_message:value2     {: RESULT = new Operation(value1, value2, OperationType.CONCAT); :}
+                | LITERAL:value                                     {: RESULT = new Operation(value, OperationType.LITERAL, valueleft, valueright); :}
+                | arithmetic_op:value                               {: RESULT = value; :}
+                ;
+                
+//---------------   Data request   ---------------//
+vb_data_request::=  INTINPUT PARENTHESISO vb_request_message:message PARENTHESISC       {: RESULT = new Input(Type.INT, new Print(message, PrintType.PRINT)); :}
+                    | FLOATINPUT PARENTHESISO vb_request_message:message PARENTHESISC   {: RESULT = new Input(Type.FLOAT, new Print(message, PrintType.PRINT)); :}
+                    | CHARINPUT PARENTHESISO vb_request_message:message PARENTHESISC    {: RESULT = new Input(Type.CHAR, new Print(message, PrintType.PRINT)); :}
+                    | INTINPUT                                                          {: RESULT = new Input(Type.INT); :}
+                    | FLOATINPUT                                                        {: RESULT = new Input(Type.FLOAT); :}
+                    | CHARINPUT                                                         {: RESULT = new Input(Type.CHAR); :}
+                    ;
+
+vb_request_message::=   LITERAL:value     {: RESULT = new Operation(value, OperationType.LITERAL, valueleft, valueright); :}
+                        | CHARACTER:value {: RESULT = new Operation(String.valueOf(value), OperationType.LITERAL, valueleft, valueright); :}
+                        ;
 
 
+
+
+
+/*------------------------------------------------    JAVA SECTION  ------------------------------------------------*/
+
+java_code::=    java_class:instruction java_code:instructionsList   {: instructionsList.addFirst(instruction); RESULT = instructionsList; :} 
+                |                                                   {: RESULT = new LinkedList<Instruction>(); :}
+                ;
+
+java_class::=   PUBLIC CLASS ID:id CURLYBRACKETO java_class_statements:instructions CURLYBRACKETC   {: RESULT = new JavaClass(AccessModifier.PUBLIC, id, instructions); :} 
+                ;
+           
+java_class_statements::=    java_method:instruction java_class_statements:instructionsList                      {: instructionsList.addFirst(instruction); RESULT = instructionsList; :}
+                            | java_declaration:instructions java_class_statements:instructionsList              {: instructionsList.addAll(0, instructions); RESULT = instructionsList; :}
+                            | java_declaration_assignment:instructions java_class_statements:instructionsList   {: instructionsList.addAll(0, instructions); RESULT = instructionsList; :}
+                            | java_assignment:instruction java_class_statements:instructionsList                {: instructionsList.addFirst(instruction); RESULT = instructionsList; :}
+                            |                                                                                   {: RESULT = new LinkedList<Instruction>(); :}
+                            ;
+                        
+java_code_statements::=     java_declaration:instructions java_code_statements:instructionsList                 {: instructionsList.addAll(0, instructions); RESULT = instructionsList; :}
+                            | java_declaration_assignment:instructions java_code_statements:instructionsList    {: instructionsList.addAll(0, instructions); RESULT = instructionsList; :}
+                            | java_assignment:instruction java_code_statements:instructionsList                 {: instructionsList.addFirst(instruction); RESULT = instructionsList; :}
+                            | java_while:instruction java_code_statements:instructionsList                      {: instructionsList.addFirst(instruction); RESULT = instructionsList; :}
+                            | java_do_while:instruction java_code_statements:instructionsList                   {: instructionsList.addFirst(instruction); RESULT = instructionsList; :}
+                            | java_for:instruction java_code_statements:instructionsList                        {: instructionsList.addFirst(instruction); RESULT = instructionsList; :}
+                            | java_if:instruction java_code_statements:instructionsList                         {: instructionsList.addFirst(instruction); RESULT = instructionsList; :}
+                            | java_screen_messages:instruction java_code_statements:instructionsList            {: instructionsList.addFirst(instruction); RESULT = instructionsList; :}
+                            | java_switch:instruction java_code_statements:instructionsList                     {: instructionsList.addFirst(instruction); RESULT = instructionsList; :}    
+                            | java_data_request:instruction java_code_statements:instructionsList               {: instructionsList.addFirst(instruction); RESULT = instructionsList; :}
+                            | RETURN arithmetic_op:instruction SEMICOLON java_code_statements:instructionsList  {: instructionsList.addFirst(new Return(instruction)); RESULT = instructionsList; :}
+                            |                                                                                   {: RESULT = new LinkedList<Instruction>(); :}
+                            ;
+
+//---------------   Methods  ---------------//
+java_method::=  PUBLIC java_method_type:returnType ID:name PARENTHESISO java_params:params PARENTHESISC CURLYBRACKETO java_code_statements:instructionsList CURLYBRACKETC {: RESULT = new Method(AccessModifier.PUBLIC, returnType, name, params, instructionsList, nameleft, nameright); :}
+                | PUBLIC java_method_type:returnType ID:name PARENTHESISO PARENTHESISC CURLYBRACKETO java_code_statements:instructionsList CURLYBRACKETC                  {: RESULT = new Method(AccessModifier.PUBLIC, returnType, name, instructionsList, nameleft, nameright); :}
+                ;
+
+java_params::=      java_data_type:dataType ID:paramName COMMA java_params:paramsList    {: paramsList.addFirst(new Declaration(paramName, dataType, Role.PARAM, paramNameleft, paramNameright)); RESULT = paramsList; :}
+                    | java_data_type:dataType ID:paramName                               {: RESULT = new LinkedList<Declaration>(); RESULT.add(new Declaration(paramName, dataType, Role.PARAM, paramNameleft, paramNameright)); :}
+                    ;
+
+java_method_type::=     INTEGER     {: RESULT = Type.INT; :}
+                        | FLOAT     {: RESULT = Type.FLOAT; :}
+                        | CHAR      {: RESULT = Type.CHAR; :}
+                        | VOID      {: RESULT = Type.VOID; :}
+                        ;
+
+//---------------   Declarations  ---------------//
+java_declaration::=     java_data_type:dataType ID:varName COMMA java_var_list:varList SEMICOLON    {: varList.addFirst(new Id(varName, varNameleft, varNameright)); RESULT = getDeclarations(varList, dataType); :}
+                        | java_data_type:dataType ID:varName SEMICOLON                              {: RESULT = new LinkedList<Instruction>(); RESULT.add(new Declaration(varName, dataType, Role.VAR, varNameleft, varNameright)); :}
+                        ;
+
+java_var_list::=    ID:varName COMMA java_var_list:varList    {: varList.addFirst(new Id(varName, varNameleft, varNameright)); RESULT = varList; :}
+                    | ID:varName                              {: RESULT = new LinkedList<Id>(); RESULT.add(new Id(varName, varNameleft, varNameright)); :}
+                    ;  
+
+//---------------   Assignments  ---------------//
+java_assignment::=      ID:varName EQUALS arithmetic_op:value SEMICOLON    {: RESULT = new Assignment(varName, value, varNameleft, varNameright); :}
+                        | ID:varName EQUALS java_data_request:value        {: RESULT = new Assignment(varName, value, varNameleft, varNameright); :}
+                        ;
+
+//---------------   Declarations && Assignments   ---------------//
+java_declaration_assignment::=  java_data_type:dataType ID:varName EQUALS arithmetic_op:value SEMICOLON     
+                                {: RESULT = new LinkedList<Instruction>(); RESULT.addFirst(new Declaration(varName, dataType, Role.VAR, varNameleft, varNameright)); RESULT.addLast(new Assignment(varName, value, varNameleft, varNameright)); :}
+                                | java_data_type:dataType ID:varName EQUALS java_data_request:value 
+                                {: RESULT = new LinkedList<Instruction>(); RESULT.addFirst(new Declaration(varName, dataType, Role.VAR, varNameleft, varNameright)); RESULT.addLast(new Assignment(varName, value, varNameleft, varNameright)); :}
+                                ;
+
+java_data_type::=   INTEGER     {: RESULT = Type.INT; :}
+                    | FLOAT     {: RESULT = Type.FLOAT; :}
+                    | CHAR      {: RESULT = Type.CHAR; :}
+                    ;
+
+//---------------   While Structure   ---------------//
+java_while::=   WHILE PARENTHESISO logical_op:condition PARENTHESISC CURLYBRACKETO java_code_statements:instructions CURLYBRACKETC {: RESULT = new While(condition, instructions); :}
+                ;
+
+//---------------   Do-While Structure   ---------------//
+java_do_while::=    DO CURLYBRACKETO java_code_statements:instructions CURLYBRACKETC WHILE PARENTHESISO logical_op:condition PARENTHESISC SEMICOLON {: RESULT = new DoWhile(condition, instructions); :}
+                    ;
+
+//---------------   For Structure   ---------------//
+java_for::=     FOR PARENTHESISO ID:varName EQUALS arithmetic_op:value1 SEMICOLON logical_op:condition SEMICOLON ID:varName2 EQUALS arithmetic_op:value2 PARENTHESISC CURLYBRACKETO java_code_statements:instructions CURLYBRACKETC
+                {: RESULT = new For(new Assignment(varName, value1, varNameleft, varNameright), condition, new Assignment(varName2, value2, varName2left, varName2right), instructions); :} 
+                | FOR PARENTHESISO java_data_type:type ID:varName EQUALS arithmetic_op:value1 SEMICOLON logical_op:condition SEMICOLON ID:varName2 EQUALS arithmetic_op:value2 PARENTHESISC CURLYBRACKETO java_code_statements:instructions CURLYBRACKETC
+                {: RESULT = new For(new Declaration(varName, type, Role.VAR, varNameleft, varNameright) ,new Assignment(varName, value1, varNameleft, varNameright), condition, new Assignment(varName2, value2, varName2left, varName2right), instructions); :} 
+                ;
+
+//---------------   If Structure   ---------------//
+java_if::=  IF PARENTHESISO logical_op:condition PARENTHESISC CURLYBRACKETO java_code_statements:instructions CURLYBRACKETC    
+            {: RESULT = new If(condition, instructions); :} 
+            | IF PARENTHESISO logical_op:condition PARENTHESISC CURLYBRACKETO java_code_statements:instructions CURLYBRACKETC ELSE CURLYBRACKETO java_code_statements:elseInstructions CURLYBRACKETC      
+            {: RESULT = new If(condition, instructions, elseInstructions); :}
+            ;
+
+//---------------   Switch Structure   ---------------//
+java_switch::=  SWITCH PARENTHESISO ID:varName PARENTHESISC CURLYBRACKETO java_switch_cases:instructions CURLYBRACKETC  {: RESULT = new Switch(new Operation(varName, OperationType.ID, varNameleft, varNameright), instructions); :} 
+                | SWITCH PARENTHESISO ID:varName PARENTHESISC CURLYBRACKETO CURLYBRACKETC                               {: RESULT = new Switch(new Operation(varName, OperationType.ID, varNameleft, varNameright), new LinkedList<Case>()); :}
+                ;
+
+java_switch_cases::=    CASE java_switch_data:value COLON java_code_statements:instructions BREAK SEMICOLON java_switch_cases:instructionsList  {: instructionsList.addFirst(new Case(value, instructions, valueleft, valueright));  RESULT = instructionsList; :}
+                        | CASE java_switch_data:value COLON java_code_statements:instructions BREAK SEMICOLON                                   {: RESULT = new LinkedList<Case>(); RESULT.add(new Case(value, instructions, valueleft, valueright)); :}
+                        | DEFAULT COLON java_code_statements:instructions BREAK SEMICOLON                                                       {: RESULT = new LinkedList<Case>(); RESULT.add(new Case(instructions)); :}
+                        ;
+
+java_switch_data::=     INTEGERNUM:value    {: RESULT = new Operation(value); :}
+                        | DOUBLENUM:value   {: RESULT = new Operation(value); :}
+                        | CHARACTER:value   {: RESULT = new Operation(value); :}
+                        ;
+
+//---------------   Screen Messages   ---------------//
+java_screen_messages::=     SYSTEM FULLSTOP OUT FULLSTOP PRINTLN PARENTHESISO java_message:message PARENTHESISC SEMICOLON   {: RESULT = new Print(message, PrintType.PRINTLN); :}
+                            | SYSTEM FULLSTOP OUT FULLSTOP PRINT PARENTHESISO java_message:message PARENTHESISC SEMICOLON   {: RESULT = new Print(message, PrintType.PRINT); :}
+                            ;
+
+java_message::=     java_message:value1 PLUS java_message_data1:value2    
+                    {:  if(value1.getOperationType() == OperationType.LITERAL || value2.getOperationType() == OperationType.LITERAL || value1.getOperationType() == OperationType.CONCAT || value2.getOperationType() == OperationType.CONCAT){
+                            RESULT = new Operation(value1, value2, OperationType.CONCAT); 
+                        } else RESULT = new Operation(value1, value2, OperationType.SUM);     
+                    :}
+                    | java_message_data1:value    {: RESULT = value; :}
+                    ;    
+
+java_message_data1::=   java_message_data1:value1 MULTIPLICATION java_message_data2:value2  
+                        {:  if(value1.getOperationType() == OperationType.LITERAL) vCompilerFrame.printMessage("Fila: " +value1left+ " Columna: " +value1right+ " Error Sintactico No se puede aplicar un operador [*] sobre un Literal."); 
+                            if(value2.getOperationType() == OperationType.LITERAL) vCompilerFrame.printMessage("Fila: " +value2left+ " Columna: " +value2right+ " Error Sintactico No se puede aplicar un operador [*] sobre un Literal."); 
+                            RESULT = new Operation(value1, value2, OperationType.MULTIPLICATION);
+                        :}
+                        | java_message_data1:value1 DIVISION java_message_data2:value2 
+                        {:  if(value1.getOperationType() == OperationType.LITERAL) vCompilerFrame.printMessage("Fila: " +value1left+ " Columna: " +value1right+ " Error Sintactico No se puede aplicar un operador [/] sobre un Literal."); 
+                            if(value2.getOperationType() == OperationType.LITERAL) vCompilerFrame.printMessage("Fila: " +value2left+ " Columna: " +value2right+ " Error Sintactico No se puede aplicar un operador [/] sobre un Literal."); 
+                            RESULT = new Operation(value1, value2, OperationType.DIVISION);
+                        :}
+                        | java_message_data1:value1 MOD java_message_data2:value2          
+                        {:  if(value1.getOperationType() == OperationType.LITERAL) vCompilerFrame.printMessage("Fila: " +value1left+ " Columna: " +value1right+ " Error Sintactico No se puede aplicar un operador [%] sobre un Literal."); 
+                            if(value2.getOperationType() == OperationType.LITERAL) vCompilerFrame.printMessage("Fila: " +value2left+ " Columna: " +value2right+ " Error Sintactico No se puede aplicar un operador [%] sobre un Literal."); 
+                            RESULT = new Operation(value1, value2, OperationType.MOD); 
+                        :}
+                        | java_message_data1:value1 MINUS java_message_data2:value2
+                        {:  if(value1.getOperationType() == OperationType.LITERAL) vCompilerFrame.printMessage("Fila: " +value1left+ " Columna: " +value1right+ " Error Sintactico No se puede aplicar un operador [-] sobre un Literal."); 
+                            if(value2.getOperationType() == OperationType.LITERAL) vCompilerFrame.printMessage("Fila: " +value2left+ " Columna: " +value2right+ " Error Sintactico No se puede aplicar un operador [-] sobre un Literal."); 
+                            RESULT = new Operation(value1, value2, OperationType.SUBTRACTION);
+                        :}    
+                        | java_message_data2:value  {: RESULT = value; :}
+                        ;
+
+java_message_data2::=   PLUS java_message_data2:value
+                        {:  if(value.getOperationType() == OperationType.LITERAL) vCompilerFrame.printMessage("Fila: " +valueleft+ " Columna: " +valueright+ " Error Sintactico No se puede aplicar un operador unario sobre un Literal.");
+                            RESULT = new Operation(value, OperationType.PLUS);  
+                        :}
+                        | MINUS java_message_data2:value   
+                        {: if(value.getOperationType() == OperationType.LITERAL) vCompilerFrame.printMessage("Fila: " +valueleft+ " Columna: " +valueright+ " Error Sintactico No se puede aplicar un operador unario sobre un Literal.");
+                            RESULT = new Operation(value, OperationType.MINUS);     
+                        :}
+                        | PARENTHESISO java_message:value PARENTHESISC   {: RESULT = value; :}
+                        | INTEGERNUM:value                               {: RESULT = new Operation(value); :}   
+                        | DOUBLENUM:value                                {: RESULT = new Operation(value); :}
+                        | ID:varName                                     {: RESULT = new Operation(varName, OperationType.ID, varNameleft, varNameright); :}
+                        | CHARACTER:value                                {: RESULT = new Operation(value); :}
+                        | LITERAL:value                                  {: RESULT = new Operation(value, OperationType.LITERAL, valueleft, valueright); :}                        
+                        ;
+
+//---------------   Data request   ---------------//
+java_data_request::=    INTINPUT PARENTHESISO LITERAL:value PARENTHESISC SEMICOLON      {: RESULT = new Input(Type.INT, new Print(new Operation(value, OperationType.LITERAL, valueleft, valueright), PrintType.PRINT)); :}
+                        | FLOATINPUT PARENTHESISO LITERAL:value PARENTHESISC SEMICOLON  {: RESULT = new Input(Type.FLOAT, new Print(new Operation(value, OperationType.LITERAL, valueleft, valueright), PrintType.PRINT)); :}
+                        | CHARINPUT PARENTHESISO LITERAL:value PARENTHESISC SEMICOLON   {: RESULT = new Input(Type.CHAR, new Print(new Operation(value, OperationType.LITERAL, valueleft, valueright), PrintType.PRINT)); :}
+                        | INTINPUT SEMICOLON                                            {: RESULT = new Input(Type.INT); :}
+                        | FLOATINPUT SEMICOLON                                          {: RESULT = new Input(Type.FLOAT); :}
+                        | CHARINPUT SEMICOLON                                           {: RESULT = new Input(Type.CHAR); :}
+                        ;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*------------------------------------------------    C SECTION  ------------------------------------------------*/
+c_code::=   c_code_imports:imports c_global_statements:globalStatements c_main:instructions
+            {: instructions.addAll(0, globalStatements); instructions.addAll(0, imports); RESULT = instructions; :}
+            ;
+
+c_code_imports::=   INCLUDE VB_INCLUDE:include c_code_imports:instructionsList                              {: instructionsList.addFirst(new Import(ImportType.VISUAL_BASIC, includeleft, includeright)); RESULT = instructionsList; :}
+                    | INCLUDE PY_INCLUDE:include c_code_imports:instructionsList                            {: instructionsList.addFirst(new Import(ImportType.PHYTON, includeleft, includeright)); RESULT = instructionsList; :}
+                    | INCLUDE J_INCLUDE:id c_code_imports:instructionsList                                  {: instructionsList.addFirst(new Import(ImportType.JAVA_CLASS, id.replaceAll("\"", "").replaceAll("JAVA.", ""), idleft, idright)); RESULT = instructionsList; :}
+                    | INCLUDE J_INCLUDE_ALL:include c_code_imports:instructionsList                         {: instructionsList.addFirst(new Import(ImportType.JAVA_ALL, includeleft, includeright)); RESULT = instructionsList; :}
+                    | INCLUDE LESSTHAN ID:id1 FULLSTOP ID:id2 GREATERTHAN c_code_imports:instructionsList   {: instructionsList.addFirst(new Import(ImportType.C_LIBRARY, id1+"."+id2, id1left, id1right)); RESULT = instructionsList; :}
+                    | INCLUDE LITERAL:id c_code_imports:instructionsList                                    {: instructionsList.addFirst(new Import(ImportType.C_FILE, id.replaceAll("\"", ""), idleft, idright)); RESULT = instructionsList; :}
+                    |                                                                                       {: RESULT = new LinkedList<Instruction>(); :}   
+                    ;
+
+c_global_statements::=  CONST c_data_type:dataType ID:varName EQUALS arithmetic_op:value SEMICOLON c_global_statements:instructionsList   {: instructionsList.addFirst(new Assignment(varName, value, varNameleft, varNameright)); instructionsList.addFirst(new Declaration(varName, dataType, Role.CONSTANT, varNameleft, varNameright)); RESULT = instructionsList; :}
+                        | c_declaration:instructions c_global_statements:instructionsList                                                 {: instructionsList.addAll(0, instructions); RESULT = instructionsList; :}
+                        | c_declaration_assignment:instructions c_global_statements:instructionsList                                      {: instructionsList.addAll(0, instructions); RESULT = instructionsList; :}
+                        | c_assignment:instruction c_global_statements:instructionsList                                                   {: instructionsList.addFirst(instruction); RESULT = instructionsList; :}
+                        |                                                                                                                 {: RESULT = new LinkedList<Instruction>(); :}
+                        ;
+
+c_main::=   VOID MAIN:main PARENTHESISO PARENTHESISC CURLYBRACKETO c_code_statements:instructions CURLYBRACKETC
+            {: RESULT = new LinkedList<Instruction>(); RESULT.add(new Method(AccessModifier.DEFAULT, Type.VOID, "main", instructions, mainleft, mainright)); :}
+            ;
+
+
+c_code_statements::=   c_declaration:instructions c_code_statements:instructionsList                {: instructionsList.addAll(0, instructions); RESULT = instructionsList; :}
+                        | c_declaration_assignment:instructions c_code_statements:instructionsList  {: instructionsList.addAll(0, instructions); RESULT = instructionsList; :}
+                        | c_assignment:instruction c_code_statements:instructionsList               {: instructionsList.addFirst(instruction); RESULT = instructionsList; :}
+                        | c_while:instruction c_code_statements:instructionsList                    {: instructionsList.addFirst(instruction); RESULT = instructionsList; :}
+                        | c_do_while:instruction c_code_statements:instructionsList                 {: instructionsList.addFirst(instruction); RESULT = instructionsList; :}
+                        | c_for:instruction c_code_statements:instructionsList                      {: instructionsList.addFirst(instruction); RESULT = instructionsList; :}
+                        | c_if:instruction c_code_statements:instructionsList                       {: instructionsList.addFirst(instruction); RESULT = instructionsList; :}
+                        | c_screen_messages:instruction c_code_statements:instructionsList          {: instructionsList.addFirst(instruction); RESULT = instructionsList; :}
+                        | c_switch:instruction c_code_statements:instructionsList                   {: instructionsList.addFirst(instruction); RESULT = instructionsList; :}    
+                        | c_scanf
+                        | c_clrscr     
+                        | c_getch
+                        |                                                                           {: RESULT = new LinkedList<Instruction>(); :}
+                        ;
+
+//---------------   Declarations  ---------------//
+c_declaration::=      c_data_type:dataType ID:varName COMMA c_var_list:varList SEMICOLON {: varList.addFirst(new Id(varName, varNameleft, varNameright)); RESULT = getDeclarations(varList, dataType); :}
+                    | c_data_type:dataType ID:varName SEMICOLON                          {: RESULT = new LinkedList<Instruction>(); RESULT.add(new Declaration(varName, dataType, Role.VAR, varNameleft, varNameright)); :}
+                    ;
+
+c_var_list::=   ID:varName COMMA c_var_list:varList    {: varList.addFirst(new Id(varName, varNameleft, varNameright)); RESULT = varList; :}
+                | ID:varName                           {: RESULT = new LinkedList<Id>(); RESULT.add(new Id(varName, varNameleft, varNameright)); :}
+                ;  
+
+//---------------   Assignments  ---------------//
+c_assignment::=    ID:varName EQUALS arithmetic_op:value SEMICOLON     {: RESULT = new Assignment(varName, value, varNameleft, varNameright); :}
+                   | ID:varName EQUALS vb_data_request:value SEMICOLON
+                   | ID EQUALS c_getch SEMICOLON
+                   ;
+
+//---------------   Declarations && Assignments   ---------------//
+c_declaration_assignment::=   c_data_type:dataType ID:varName EQUALS arithmetic_op:value SEMICOLON {: RESULT = new LinkedList<Instruction>(); RESULT.addFirst(new Declaration(varName, dataType, Role.VAR, varNameleft, varNameright)); RESULT.addLast(new Assignment(varName, value, varNameleft, varNameright)); :}
+                            | c_data_type:dataType ID:varName EQUALS vb_data_request:value SEMICOLON 
+                            | c_data_type:dataType ID:varName EQUALS c_getch:value SEMICOLON    
+                            ;
+
+c_data_type::=     INTEGER     {: RESULT = Type.INT; :}
+                   | FLOAT     {: RESULT = Type.FLOAT; :}
+                   | CHAR      {: RESULT = Type.CHAR; :}
+                   ;
+
+//---------------   While Structure   ---------------//
+c_while::=     WHILE PARENTHESISO logical_op:condition PARENTHESISC CURLYBRACKETO c_code_statements:instructions CURLYBRACKETC {: RESULT = new While(condition, instructions); :}
+                ;
+
+//---------------   Do-While Structure   ---------------//
+c_do_while::=   DO CURLYBRACKETO c_code_statements:instructions CURLYBRACKETC WHILE PARENTHESISO logical_op:condition PARENTHESISC SEMICOLON {: RESULT = new DoWhile(condition, instructions); :}
+                ;
+
+//---------------   For Structure   ---------------//
+c_for::=   FOR PARENTHESISO ID:varName EQUALS arithmetic_op:value1 SEMICOLON logical_op:condition SEMICOLON ID:varName2 EQUALS arithmetic_op:value2 PARENTHESISC CURLYBRACKETO c_code_statements:instructions CURLYBRACKETC
+           {: RESULT = new For(new Assignment(varName, value1, varNameleft, varNameright), condition, new Assignment(varName2, value2, varName2left, varName2right), instructions); :} 
+           ;
+
+//---------------   If Structure   ---------------//
+c_if::=     IF PARENTHESISO logical_op:condition PARENTHESISC CURLYBRACKETO c_code_statements:instructions CURLYBRACKETC    
+            {: RESULT = new If(condition, instructions); :} 
+            | IF PARENTHESISO logical_op:condition PARENTHESISC CURLYBRACKETO c_code_statements:instructions CURLYBRACKETC ELSE CURLYBRACKETO c_code_statements:elseInstructions CURLYBRACKETC      
+            {: RESULT = new If(condition, instructions, elseInstructions); :}
+            ;
+
+//---------------   Switch Structure   ---------------//
+c_switch::=    SWITCH PARENTHESISO ID:varName PARENTHESISC CURLYBRACKETO c_switch_cases:instructions CURLYBRACKETC  {: RESULT = new Switch(new Operation(varName, OperationType.ID, varNameleft, varNameright), instructions); :} 
+               | SWITCH PARENTHESISO ID:varName PARENTHESISC CURLYBRACKETO CURLYBRACKETC                            {: RESULT = new Switch(new Operation(varName, OperationType.ID, varNameleft, varNameright), new LinkedList<Case>()); :}
+               ;
+
+c_switch_cases::=   CASE c_switch_data:value COLON c_code_statements:instructions BREAK SEMICOLON c_switch_cases:instructionsList   {: instructionsList.addFirst(new Case(value, instructions, valueleft, valueright));  RESULT = instructionsList; :}
+                    | CASE c_switch_data:value COLON c_code_statements:instructions BREAK SEMICOLON                                 {: RESULT = new LinkedList<Case>(); RESULT.add(new Case(value, instructions, valueleft, valueright)); :}
+                    | DEFAULT COLON c_code_statements:instructions BREAK SEMICOLON                                                  {: RESULT = new LinkedList<Case>(); RESULT.add(new Case(instructions)); :}
+                    ;
+
+c_switch_data::=   INTEGERNUM:value    {: RESULT = new Operation(value); :}
+                   | DOUBLENUM:value   {: RESULT = new Operation(value); :}
+                   | CHARACTER:value   {: RESULT = new Operation(value); :}
+                   ;
+
+//---------------   Scanf Structure   ---------------//
+c_scanf::=  SCANF PARENTHESISO c_scanf_type COMMA AMPERSAND ID PARENTHESISC SEMICOLON
+            ;
+
+c_scanf_type::=     INTTYPE
+                    | CHARTYPE
+                    | FLOATTYPE
+                    ;
+
+//---------------   Clrscr Structure   ---------------//
+c_clrscr::=     CLRSCR PARENTHESISO PARENTHESISC SEMICOLON
+                ;
+
+//---------------   Getch Structure   ---------------//
+c_getch::=     GETCH PARENTHESISO PARENTHESISC SEMICOLON
+               ;
+
+//---------------   Screen Messages   ---------------//
+c_screen_messages::=   PRINTF PARENTHESISO c_message:message PARENTHESISC SEMICOLON     {: RESULT = new Print(message, PrintType.PRINTLN); :}
+                       ;
+
+c_message::=   LITERAL:value1 COMMA c_message:value2              {: RESULT = new Operation(new Operation(value1, OperationType.LITERAL, value1left, value1right), value2, OperationType.CONCAT); :}
+                | arithmetic_op:value1 COMMA c_message:value2     {: RESULT = new Operation(value1, value2, OperationType.CONCAT); :}
+                | LITERAL:value                                   {: RESULT = new Operation(value, OperationType.LITERAL, valueleft, valueright); :}
+                | arithmetic_op:value                             {: RESULT = value; :}
+                ;

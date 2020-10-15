@@ -1,7 +1,10 @@
 package com.hluther.gui;
 
+import com.hluther.compiler.AST.AbstractSyntaxTree;
+import com.hluther.compiler.AST.SymbolTable;
 import com.hluther.controlClasses.AnalysisDriver;
 import com.hluther.controlClasses.ThreadsDriver;
+import com.hluther.controlClasses.ThreeAddressCodeDriver;
 import javax.swing.JLabel;
 import javax.swing.JTextPane;
 /**
@@ -91,14 +94,24 @@ public class GeneratePanel extends javax.swing.JPanel {
     }// </editor-fold>//GEN-END:initComponents
 
     private void codeButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_codeButtonActionPerformed
-        if(vTabs[0] != null){
-            messagesArea.setText("");
-            analysisDriver.doAnalysis(vTabs[0].getData(), vCompilerFrame);
+        try{
+            if(vTabs[0] != null){
+                messagesArea.setText("");
+                AbstractSyntaxTree ast = analysisDriver.doAnalysis(vTabs[0].getData(), vCompilerFrame);
+                ast.analyze(null, ast, vCompilerFrame);
+                
+                //ast.generateOnlyReadThreeAddressCode(new ThreeAddressCodeDriver());
+                
+                
+            }
+            else{
+                informationLabel.setText("No hay ningun codigo para analizar.");
+                ThreadsDriver.clearLabel(informationLabel);
+            }
+        } catch(NullPointerException e){
+            //Do nothing
         }
-        else{
-            informationLabel.setText("No hay ningun codigo para analizar.");
-            ThreadsDriver.clearLabel(informationLabel);
-        }
+        
     }//GEN-LAST:event_codeButtonActionPerformed
 
 

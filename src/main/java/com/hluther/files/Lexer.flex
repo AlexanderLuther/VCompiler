@@ -60,7 +60,7 @@ WhiteSpace = {LineTerminator} | [ \t\f]
 
     private void printError(){
         if(line != -1 && column != -1){
-          //  vCompilerFrame.printMessage("Error Lexico: Lexema ["+errorLexeme+"] no reconocido en esta seccion del archivo. Linea: "+line+" Columna: "+column + "\n");
+            vCompilerFrame.printMessage("Fila: " +line+ " Columna" +column+ " Error Lexico: Lexema ["+errorLexeme+"] no reconocido en esta seccion del archivo.");
             errorLexeme = "";
             line = -1;
             column = -1;
@@ -94,7 +94,6 @@ WhiteSpace = {LineTerminator} | [ \t\f]
     "If"                                                { printToken("IF"); printError(); return symbol(VSym.IF); }
     "Then"                                              { printToken("THEN"); printError(); return symbol(VSym.THEN); }
     "Else"                                              { printToken("ELSE"); printError(); return symbol(VSym.ELSE); }
-    "ElseIf"                                            { printToken("ELSEIF"); printError(); return symbol(VSym.ELSEIF); }
     "Select"                                            { printToken("SELECT"); printError(); return symbol(VSym.SELECT); }
     "Case"                                              { printToken("CASE"); printError(); return symbol(VSym.CASE); }
     "While"                                             { printToken("WHILE"); printError(); return symbol(VSym.WHILE); }
@@ -121,7 +120,7 @@ WhiteSpace = {LineTerminator} | [ \t\f]
     "/"                                                 { printToken("DIVISION"); printError(); return symbol(VSym.DIVISION); }
     "*"                                                 { printToken("MULTIPLICATION"); printError(); return symbol(VSym.MULTIPLICATION); }
     "Mod"                                               { printToken("MOD"); printError(); return symbol(VSym.MOD); }
-    "="                                                 { printToken("EQUALS"); printError(); return symbol(VSym.EQUALS); }
+    "="                                                 { printToken("COMPARATION"); printError(); return symbol(VSym.COMPARATION); }
     "<"                                                 { printToken("LESSTHAN"); printError(); return symbol(VSym.LESSTHAN); }
     "<="                                                { printToken("LESSEQUALTHAN"); printError(); return symbol(VSym.LESSEQUALTHAN); }
     ">"                                                 { printToken("GREATERTHAN"); printError(); return symbol(VSym.GREATERTHAN); }
@@ -129,14 +128,12 @@ WhiteSpace = {LineTerminator} | [ \t\f]
     "<>"                                                { printToken("NOTEQUAL"); printError(); return symbol(VSym.NOTEQUAL); }
     "("                                                 { printToken("PARENTHESISO"); printError(); return symbol(VSym.PARENTHESISO); }
     ")"                                                 { printToken("PARENTHESISC"); printError(); return symbol(VSym.PARENTHESISC); }
-    "["                                                 { printToken("SQUAREBRACKETO"); printError(); return symbol(VSym.SQUAREBRACKETO); }
-    "]"                                                 { printToken("SQUAREBRACKETC"); printError(); return symbol(VSym.SQUAREBRACKETC); }
     ","                                                 { printToken("COMMA"); printError(); return symbol(VSym.COMMA); }
     "."                                                 { printToken("FULLSTOP"); printError(); return symbol(VSym.FULLSTOP); }
     "&"                                                 { printToken("CONCAT"); printError(); return symbol(VSym.CONCAT); }
     ({Letter} | "_") ({Letter} | {Number} | "_")*       { printToken("ID"); printError(); return symbol(VSym.ID, yytext()); }
     ("\"") [^]{1} ("\"")                                { printToken("CHARACTER"); printError(); return symbol(VSym.CHARACTER, yytext().charAt(1)); }
-    ("\"") [^*]~ ("\"")                                 { printToken("LITERAL"); printError(); return symbol(VSym.LITERAL, yytext()); }
+    (\") [^\"]* (\")?                                         { printToken("LITERAL"); printError(); return symbol(VSym.LITERAL, yytext()); }
     "0" | [1-9][0-9]*                                   { printToken("INTEGERNUM"); printError(); return symbol(VSym.INTEGERNUM, Integer.parseInt(yytext())); }
     {Number}+ "." {Number}+                             { printToken("DOUBLENUM"); printError(); return symbol(VSym.DOUBLENUM, Double.parseDouble(yytext())); }
     "//"{InputCharacter}* {LineTerminator}?             { printToken("LINECOMMENT"); printError(); } //Ignore
@@ -145,16 +142,129 @@ WhiteSpace = {LineTerminator} | [ \t\f]
     [^]                                                 { printToken("ERROR"); createErrorLexeme(yytext(), (yyline+1), yycolumn); } 
 }
 
-
-
 <JAVA>{
-    "%%PY"                                              { yybegin(PHYTON); printToken("P_SEPARATOR"); printError(); return symbol(VSym.P_SEPARATOR); }
+    "%%PY"                                          { yybegin(PHYTON); printToken("P_SEPARATOR"); printError(); return symbol(VSym.P_SEPARATOR); }
+    "public"                                        { printToken("PUBLIC"); printError(); return symbol(VSym.PUBLIC); }
+    "class"                                         { printToken("CLASS"); printError(); return symbol(VSym.CLASS); }
+    "void"                                          { printToken("VOID"); printError(); return symbol(VSym.VOID); }
+    "int"                                           { printToken("INTEGER"); printError(); return symbol(VSym.INTEGER); }
+    "float"                                         { printToken("FLOAT"); printError(); return symbol(VSym.FLOAT); }
+    "char"                                          { printToken("CHAR"); printError(); return symbol(VSym.CHAR); }
+    "while"                                         { printToken("WHILE"); printError(); return symbol(VSym.WHILE); }
+    "do"                                            { printToken("DO"); printError(); return symbol(VSym.DO); }
+    "for"                                           { printToken("FOR"); printError(); return symbol(VSym.FOR); }
+    "if"                                            { printToken("IF"); printError(); return symbol(VSym.IF); }
+    "else"                                          { printToken("ELSE"); printError(); return symbol(VSym.ELSE); }
+    "switch"                                        { printToken("SWITCH"); printError(); return symbol(VSym.SWITCH); }
+    "case"                                          { printToken("CASE"); printError(); return symbol(VSym.CASE); }                                                    
+    "default"                                       { printToken("DEFAULT"); printError(); return symbol(VSym.DEFAULT); }
+    "break"                                         { printToken("BREAK"); printError(); return symbol(VSym.BREAK); }
+    "intinput"                                      { printToken("INTINPUT"); printError(); return symbol(VSym.INTINPUT); }
+    "floatinput"                                    { printToken("FLOATINPUT"); printError(); return symbol(VSym.FLOATINPUT); }
+    "charinput"                                     { printToken("CHARINPUT"); printError(); return symbol(VSym.CHARINPUT); }
+    "return"                                        { printToken("RETURN"); printError(); return symbol(VSym.RETURN); }
+    "System"                                        { printToken("SYSTEM"); printError(); return symbol(VSym.SYSTEM); }
+    "out"                                           { printToken("OUT"); printError(); return symbol(VSym.OUT); }
+    "print"                                         { printToken("PRINT"); printError(); return symbol(VSym.PRINT); }
+    "println"                                       { printToken("PRINTLN"); printError(); return symbol(VSym.PRINTLN); }
+    "&&"                                            { printToken("AND"); printError(); return symbol(VSym.AND); }
+    "||"                                            { printToken("OR"); printError(); return symbol(VSym.OR); }  
+    "!"                                             { printToken("NOT"); printError(); return symbol(VSym.NOT); }    
+    "+"                                             { printToken("PLUS"); printError(); return symbol(VSym.PLUS); }
+    "-"                                             { printToken("MINUS"); printError(); return symbol(VSym.MINUS); }
+    "/"                                             { printToken("DIVISION"); printError(); return symbol(VSym.DIVISION); }
+    "*"                                             { printToken("MULTIPLICATION"); printError(); return symbol(VSym.MULTIPLICATION); }
+    "%"                                             { printToken("MOD"); printError(); return symbol(VSym.MOD); }
+    "="                                             { printToken("EQUALS"); printError(); return symbol(VSym.EQUALS); }
+    "=="                                            { printToken("COMPARATION"); printError(); return symbol(VSym.COMPARATION); }
+    "<"                                             { printToken("LESSTHAN"); printError(); return symbol(VSym.LESSTHAN); }
+    "<="                                            { printToken("LESSEQUALTHAN"); printError(); return symbol(VSym.LESSEQUALTHAN); }
+    ">"                                             { printToken("GREATERTHAN"); printError(); return symbol(VSym.GREATERTHAN); }
+    ">="                                            { printToken("GREATEREQUALTHAN"); printError(); return symbol(VSym.GREATEREQUALTHAN); }
+    "!="                                            { printToken("NOTEQUAL"); printError(); return symbol(VSym.NOTEQUAL); }
+    "("                                             { printToken("PARENTHESISO"); printError(); return symbol(VSym.PARENTHESISO); }
+    ")"                                             { printToken("PARENTHESISC"); printError(); return symbol(VSym.PARENTHESISC); }
+    "{"                                             { printToken("CURLYBRACKETO"); printError(); return symbol(VSym.CURLYBRACKETO); }
+    "}"                                             { printToken("CURLYBRACKETC"); printError(); return symbol(VSym.CURLYBRACKETC); }
+    ","                                             { printToken("COMMA"); printError(); return symbol(VSym.COMMA); }
+    "."                                             { printToken("FULLSTOP"); printError(); return symbol(VSym.FULLSTOP); }
+    ";"                                             { printToken("SEMICOLON"); printError(); return symbol(VSym.SEMICOLON); }
+    ":"                                             { printToken("COLON"); printError(); return symbol(VSym.COLON); }
+    (\") [^\"]* (\")?                               { printToken("LITERAL"); printError(); return symbol(VSym.LITERAL, yytext()); }
+    ("'") [^]{1} ("'")                              { printToken("CHARACTER"); printError(); return symbol(VSym.CHARACTER, yytext().charAt(1)); }
+    ({Letter} | "_") ({Letter} | {Number} | "_")*   { printToken("ID"); printError(); return symbol(VSym.ID, yytext()); }
+    "0" | [1-9][0-9]*                               { printToken("INTEGERNUM"); printError(); return symbol(VSym.INTEGERNUM, Integer.parseInt(yytext())); }
+    {Number}+ "." {Number}+                         { printToken("DOUBLENUM"); printError(); return symbol(VSym.DOUBLENUM, Double.parseDouble(yytext())); }
+    "//"{InputCharacter}* {LineTerminator}?         { printToken("LINECOMMENT"); printError(); } //Ignore
+    ("/*" [^*/]* "*/") | ("/*" [^/]~ "*/")          { printToken("BLOCKCOMMENT"); printError(); } //Ignore
+    {WhiteSpace}                                    { printError(); } //Ignore
 }
 
 <PHYTON>{
-    "%%PROGRAMA"                                        { yybegin(C); printToken("C_SEPARATOR"); printError(); return symbol(VSym.C_SEPARATOR); }
+    "%%PROGRAMA"                                        { yybegin(C); printToken("C_SEPARATOR"); printError(); return symbol(VSym.C_SEPARATOR); }   
 }
 
 <C>{
-[^]                                             { printToken("ERROR"); createErrorLexeme(yytext(), (yyline+1), yycolumn); } 
+    "#include"                                                      { printToken("INCLUDE"); printError(); return symbol(VSym.INCLUDE); }
+    "\"VB\""                                                        { printToken("VB_INCLUDE"); printError(); return symbol(VSym.VB_INCLUDE); }
+    "\"PY\""                                                        { printToken("PY_INCLUDE"); printError(); return symbol(VSym.PY_INCLUDE); }
+    "\"JAVA.*\""                                                    { printToken("J_INCLUDE_ALL"); printError(); return symbol(VSym.J_INCLUDE_ALL); }
+    "\"JAVA." ({Letter} | "_") ({Letter} | {Number} | "_")* "\""    { printToken("J_INCLUDE"); printError(); return symbol(VSym.J_INCLUDE, yytext()); }  
+    "const"                                                         { printToken("CONST"); printError(); return symbol(VSym.CONST); }
+    "void"                                                          { printToken("VOID"); printError(); return symbol(VSym.VOID); }
+    "main"                                                          { printToken("MAIN"); printError(); return symbol(VSym.MAIN); }
+    "int"                                                           { printToken("INTEGER"); printError(); return symbol(VSym.INTEGER); }
+    "float"                                                         { printToken("FLOAT"); printError(); return symbol(VSym.FLOAT); }
+    "char"                                                          { printToken("CHAR"); printError(); return symbol(VSym.CHAR); }
+    "while"                                                         { printToken("WHILE"); printError(); return symbol(VSym.WHILE); }
+    "do"                                                            { printToken("DO"); printError(); return symbol(VSym.DO); }
+    "for"                                                           { printToken("FOR"); printError(); return symbol(VSym.FOR); }
+    "if"                                                            { printToken("IF"); printError(); return symbol(VSym.IF); }
+    "else"                                                          { printToken("ELSE"); printError(); return symbol(VSym.ELSE); }
+    "printf"                                                        { printToken("PRINTF"); printError(); return symbol(VSym.PRINTF); }   
+    "switch"                                                        { printToken("SWITCH"); printError(); return symbol(VSym.SWITCH); }
+    "case"                                                          { printToken("CASE"); printError(); return symbol(VSym.CASE); }                                                    
+    "default"                                                       { printToken("DEFAULT"); printError(); return symbol(VSym.DEFAULT); }
+    "break"                                                         { printToken("BREAK"); printError(); return symbol(VSym.BREAK); }
+    "scanf"                                                         { printToken("SCANF"); printError(); return symbol(VSym.SCANF); }
+    "%d"                                                            { printToken("INTYTPE"); printError(); return symbol(VSym.INTTYPE); }
+    "%c"                                                            { printToken("CHARTYPE"); printError(); return symbol(VSym.CHARTYPE); }
+    "%f"                                                            { printToken("FLOATTYPE"); printError(); return symbol(VSym.FLOATTYPE); }
+    "clrscr"                                                        { printToken("CLRSCR"); printError(); return symbol(VSym.CLRSCR); }
+    "getch"                                                         { printToken("GETCH"); printError(); return symbol(VSym.GETCH); }
+    "&&"                                                            { printToken("AND"); printError(); return symbol(VSym.AND); }
+    "||"                                                            { printToken("OR"); printError(); return symbol(VSym.OR); }  
+    "!"                                                             { printToken("NOT"); printError(); return symbol(VSym.NOT); }    
+    "+"                                                             { printToken("PLUS"); printError(); return symbol(VSym.PLUS); }
+    "-"                                                             { printToken("MINUS"); printError(); return symbol(VSym.MINUS); }
+    "/"                                                             { printToken("DIVISION"); printError(); return symbol(VSym.DIVISION); }
+    "*"                                                             { printToken("MULTIPLICATION"); printError(); return symbol(VSym.MULTIPLICATION); }
+    "%"                                                             { printToken("MOD"); printError(); return symbol(VSym.MOD); }
+    "="                                                             { printToken("EQUALS"); printError(); return symbol(VSym.EQUALS); }
+    "=="                                                            { printToken("COMPARATION"); printError(); return symbol(VSym.COMPARATION); }
+    "<"                                                             { printToken("LESSTHAN"); printError(); return symbol(VSym.LESSTHAN); }
+    "<="                                                            { printToken("LESSEQUALTHAN"); printError(); return symbol(VSym.LESSEQUALTHAN); }
+    ">"                                                             { printToken("GREATERTHAN"); printError(); return symbol(VSym.GREATERTHAN); }
+    ">="                                                            { printToken("GREATEREQUALTHAN"); printError(); return symbol(VSym.GREATEREQUALTHAN); }
+    "!="                                                            { printToken("NOTEQUAL"); printError(); return symbol(VSym.NOTEQUAL); }
+    "("                                                             { printToken("PARENTHESISO"); printError(); return symbol(VSym.PARENTHESISO); }
+    ")"                                                             { printToken("PARENTHESISC"); printError(); return symbol(VSym.PARENTHESISC); }
+    "["                                                             { printToken("SQUAREBRACKETO"); printError(); return symbol(VSym.SQUAREBRACKETO); }
+    "]"                                                             { printToken("SQUAREBRACKETC"); printError(); return symbol(VSym.SQUAREBRACKETC); }
+    "{"                                                             { printToken("CURLYBRACKETO"); printError(); return symbol(VSym.CURLYBRACKETO); }
+    "}"                                                             { printToken("CURLYBRACKETC"); printError(); return symbol(VSym.CURLYBRACKETC); }
+    ","                                                             { printToken("COMMA"); printError(); return symbol(VSym.COMMA); }
+    "."                                                             { printToken("FULLSTOP"); printError(); return symbol(VSym.FULLSTOP); }
+    ";"                                                             { printToken("SEMICOLON"); printError(); return symbol(VSym.SEMICOLON); }
+    ":"                                                             { printToken("COLON"); printError(); return symbol(VSym.COLON); }
+    "&"                                                             { printToken("AMPERSAND"); printError(); return symbol(VSym.AMPERSAND); }
+    (\") [^\"]* (\")?                                               { printToken("LITERAL"); printError(); return symbol(VSym.LITERAL, yytext()); }
+    ("'") [^]{1} ("'")                                              { printToken("CHARACTER"); printError(); return symbol(VSym.CHARACTER, yytext().charAt(1)); }
+    ({Letter} | "_") ({Letter} | {Number} | "_")*                   { printToken("ID"); printError(); return symbol(VSym.ID, yytext()); }
+    "0" | [1-9][0-9]*                                               { printToken("INTEGERNUM"); printError(); return symbol(VSym.INTEGERNUM, Integer.parseInt(yytext())); }
+    {Number}+ "." {Number}+                                         { printToken("DOUBLENUM"); printError(); return symbol(VSym.DOUBLENUM, Double.parseDouble(yytext())); }
+    "//"{InputCharacter}* {LineTerminator}?                         { printToken("LINECOMMENT"); printError(); } //Ignore
+    ("/*" [^*/]* "*/") | ("/*" [^/]~ "*/")                          { printToken("BLOCKCOMMENT"); printError(); } //Ignore
+    {WhiteSpace}                                                    { printError(); } //Ignore
+    [^]                                                             { printToken("ERROR"); createErrorLexeme(yytext(), (yyline+1), yycolumn); } 
 }
